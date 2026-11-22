@@ -1,3 +1,4 @@
+import { Type, ImageOff, Sun, Moon, Music, BookOpen, Film, Image as ImageIcon, Presentation, StickyNote, X } from 'lucide-react'
 import { useState } from 'react'
 import { useStore, useSnapshot, actions, setState, setLive, type AppState } from '../../core/store'
 import { useUI, select, goLive, clearText, setUI } from '../../ui/uiStore'
@@ -72,35 +73,35 @@ function LiveButtons() {
   const hasMedia = useStore((s) => !!s.live.media)
   return (
     <section className="live-buttons">
-      <Btn onClick={clearText} disabled={!hasText} title="Esc">✕ Letra</Btn>
+      <Btn icon={Type} onClick={clearText} disabled={!hasText} title="Limpar letra (Esc)">Limpar letra</Btn>
       <Btn onClick={() => setLive((l) => ({ ...l, textVisible: !l.textVisible }))} active={!textVisible} disabled={!hasText}>{textVisible ? 'Ocultar letra' : 'Mostrar letra'}</Btn>
-      <Btn onClick={actions.clearMedia} disabled={!hasMedia}>✕ Mídia</Btn>
-      <Btn kind={black ? 'danger' : 'default'} onClick={actions.toggleBlack} active={black} title="B">■ Preto</Btn>
+      <Btn icon={ImageOff} onClick={actions.clearMedia} disabled={!hasMedia} title="Tirar mídia (M)">Tirar mídia</Btn>
+      <Btn icon={black ? Sun : Moon} kind={black ? 'danger' : 'default'} onClick={actions.toggleBlack} active={black} title="Tela preta (B)">{black ? 'Voltar' : 'Tela preta'}</Btn>
       <Btn kind="ghost" onClick={() => { clearText(); actions.clearAll() }}>Limpar tudo</Btn>
     </section>
   )
 }
 
-function itemInfo(it: ServiceItem, st: AppState): { icon: string; title: string; sub?: string } {
+function itemInfo(it: ServiceItem, st: AppState): { icon: React.ReactNode; title: string; sub?: string } {
   switch (it.type) {
     case 'song': {
       const so = st.songs.find((x) => x.id === it.songId)
-      return { icon: '♪', title: so?.title ?? '(música removida)', sub: so?.artist }
+      return { icon: <Music size={15} />, title: so?.title ?? '(música removida)', sub: so?.artist }
     }
     case 'bible': {
       const b = st.bibles.find((x) => x.id === it.versionId)
-      return { icon: '✝', title: `${BOOKS_PT[it.book]?.[0] ?? ''} ${it.chapter}:${it.verseFrom}`, sub: b?.abbrev }
+      return { icon: <BookOpen size={15} />, title: `${BOOKS_PT[it.book]?.[0] ?? ''} ${it.chapter}:${it.verseFrom}`, sub: b?.abbrev }
     }
     case 'media': {
       const m = st.media.find((x) => x.id === it.mediaId)
-      return { icon: m?.kind === 'video' ? '▶' : '▣', title: m?.name ?? '(arquivo removido)', sub: m?.kind === 'video' ? 'vídeo' : 'imagem' }
+      return { icon: m?.kind === 'video' ? <Film size={15} /> : <ImageIcon size={15} />, title: m?.name ?? '(arquivo removido)', sub: m?.kind === 'video' ? 'vídeo' : 'imagem' }
     }
     case 'pptx': {
       const m = st.media.find((x) => x.id === it.mediaId)
-      return { icon: 'P', title: m?.name ?? '(arquivo removido)', sub: 'PowerPoint' }
+      return { icon: <Presentation size={15} />, title: m?.name ?? '(arquivo removido)', sub: 'PowerPoint' }
     }
     case 'note':
-      return { icon: '✎', title: it.text, sub: 'anotação' }
+      return { icon: <StickyNote size={15} />, title: it.text, sub: 'anotação' }
   }
 }
 
@@ -207,7 +208,7 @@ function ServiceList() {
                 <span className="li-title">{info.title}</span>
                 {info.sub && <span className="li-sub">{info.sub}</span>}
               </div>
-              <button className="li-del" title="Remover do culto" onClick={(e) => { e.stopPropagation(); setState((s) => ({ ...s, service: s.service.filter((x) => x.id !== it.id) })) }}>✕</button>
+              <button className="li-del" title="Remover do culto" onClick={(e) => { e.stopPropagation(); setState((s) => ({ ...s, service: s.service.filter((x) => x.id !== it.id) })) }}><X size={14} /></button>
             </div>
           )
         })}

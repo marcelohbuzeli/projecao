@@ -1,3 +1,4 @@
+import { Trash2, Pencil, Play, Image as ImageIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useStore, setState, actions, getState } from '../core/store'
 import type { Visual, Theme, Overlay, ShaderName, MediaItem } from '../core/types'
@@ -116,19 +117,19 @@ function FilesLib() {
               ctx.open(e, [
                 ...(m.kind !== 'pptx'
                   ? [
-                      { label: '★ Usar como tema (fundo em loop)', onClick: () => asTheme(m) },
-                      { label: '◐ Usar como sobreposição', onClick: () => asTheme(m, true) },
-                      { label: '▶ Mostrar no telão agora', onClick: () => actions.playMedia(m) },
+                      { label: 'Usar como tema (fundo em loop)', onClick: () => asTheme(m) },
+                      { label: 'Usar como sobreposição', onClick: () => asTheme(m, true) },
+                      { label: 'Mostrar no telão agora', onClick: () => actions.playMedia(m) },
                     ]
                   : []),
                 {
-                  label: '✎ Renomear',
+                  label: 'Renomear',
                   onClick: () => {
                     const n = prompt('Nome', m.name)
                     if (n) setState((s) => ({ ...s, media: s.media.map((x) => (x.id === m.id ? { ...x, name: n } : x)) }))
                   },
                 },
-                { label: '🗑 Excluir', danger: true, onClick: () => remove(m) },
+                { label: 'Excluir', danger: true, onClick: () => remove(m) },
               ])
             }
           >
@@ -141,8 +142,8 @@ function FilesLib() {
               <small>{fmtSize(m.size)}</small>
             </div>
             <div className="lc-actions">
-              {m.kind !== 'pptx' && <Btn small onClick={() => asTheme(m)}>★ Tema</Btn>}
-              <Btn small kind="ghost" onClick={() => remove(m)}>🗑</Btn>
+              {m.kind !== 'pptx' && <Btn small icon={ImageIcon} onClick={() => asTheme(m)}>Usar como tema</Btn>}
+              <Btn small kind="ghost" icon={Trash2} title="Excluir" onClick={() => remove(m)} />
             </div>
           </div>
         ))}
@@ -194,10 +195,10 @@ function VisualLib({ kind }: { kind: 'theme' | 'overlay' }) {
               onClick={() => setEdit(structuredClone(it))}
               onContext={(e) =>
                 ctx.open(e, [
-                  { label: '✎ Editar', onClick: () => setEdit(structuredClone(it)) },
-                  { label: '▶ Aplicar ao vivo', onClick: () => (kind === 'theme' ? actions.setTheme(it.id) : actions.setOverlay(it.id)) },
-                  { label: '⧉ Duplicar', onClick: () => save({ ...structuredClone(it), id: uid(), name: it.name + ' (cópia)' }) },
-                  { label: '🗑 Excluir', danger: true, onClick: () => remove(it) },
+                  { label: 'Editar', onClick: () => setEdit(structuredClone(it)) },
+                  { label: 'Aplicar ao vivo', onClick: () => (kind === 'theme' ? actions.setTheme(it.id) : actions.setOverlay(it.id)) },
+                  { label: 'Duplicar', onClick: () => save({ ...structuredClone(it), id: uid(), name: it.name + ' (cópia)' }) },
+                  { label: 'Excluir', danger: true, onClick: () => remove(it) },
                 ])
               }
             />
@@ -206,9 +207,9 @@ function VisualLib({ kind }: { kind: 'theme' | 'overlay' }) {
               <small>{visualLabel(it.visual)}{'blend' in it && it.blend !== 'normal' ? ' · ' + it.blend : ''}</small>
             </div>
             <div className="lc-actions">
-              <Btn small onClick={() => (kind === 'theme' ? actions.setTheme(it.id) : actions.setOverlay(it.id))}>▶ Ao vivo</Btn>
-              <Btn small kind="ghost" onClick={() => setEdit(structuredClone(it))}>✎</Btn>
-              <Btn small kind="ghost" onClick={() => remove(it)}>🗑</Btn>
+              <Btn small onClick={() => (kind === 'theme' ? actions.setTheme(it.id) : actions.setOverlay(it.id))} icon={Play}>Ao vivo</Btn>
+              <Btn small kind="ghost" icon={Pencil} title="Editar" onClick={() => setEdit(structuredClone(it))} />
+              <Btn small kind="ghost" icon={Trash2} title="Excluir" onClick={() => remove(it)} />
             </div>
           </div>
         ))}
@@ -301,7 +302,7 @@ function VisualEditor({ item, kind, onClose, onSave }: { item: Theme | Overlay; 
               <div className="media-pick">
                 {media.map((m) => (
                   <button key={m.id} className={'mp' + (v.mediaId === m.id ? ' on' : '')} onClick={() => setV({ ...v, mediaId: m.id, kind: m.kind as any })} style={{ background: `#000 url(${m.thumb}) center/cover` }} title={m.name}>
-                    {m.kind === 'video' && <span className="badge-r">▶</span>}
+                    {m.kind === 'video' && <span className="badge-r">VÍDEO</span>}
                   </button>
                 ))}
                 {!media.length && <p className="hint">Importe imagens ou vídeos na aba Arquivos primeiro.</p>}
@@ -376,7 +377,7 @@ function SongsLib() {
               <td>{s.artist}</td>
               <td>{s.slides.length}</td>
               <td className="right">
-                <Btn small onClick={() => setUI({ editSongId: s.id })}>✎ Editar</Btn>
+                <Btn small icon={Pencil} onClick={() => setUI({ editSongId: s.id })}>Editar</Btn>
                 <Btn small kind="ghost" onClick={() => confirm(`Excluir "${s.title}"?`) && setState((st) => ({ ...st, songs: st.songs.filter((x) => x.id !== s.id) }))}>🗑</Btn>
               </td>
             </tr>
@@ -441,7 +442,7 @@ function BiblesLib() {
                     setState((s) => ({ ...s, bibles: s.bibles.filter((x) => x.id !== b.id), settings: { ...s.settings, bibleId: s.settings.bibleId === b.id ? '' : s.settings.bibleId } }))
                   }}
                 >
-                  🗑
+                  <Trash2 size={14} />
                 </Btn>
               </td>
             </tr>

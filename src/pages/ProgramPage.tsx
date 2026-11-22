@@ -1,3 +1,4 @@
+import { Play, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useStore, useSnapshot, setState, getState, actions, findStyle } from '../core/store'
 import type { Scene, SceneOutputId, TextStyle, CameraLayout, ResolvedLook, Snapshot } from '../core/types'
@@ -60,11 +61,11 @@ export function ProgramPage() {
                 onClick={() => setEditId(sc.id)}
                 onContext={(e) =>
                   ctx.open(e, [
-                    { label: '▶ Aplicar ao vivo', onClick: () => actions.applyScene(sc.id) },
-                    { label: '⧉ Duplicar', onClick: () => setState((s) => ({ ...s, scenes: [...s.scenes, { ...structuredClone(sc), id: uid(), name: sc.name + ' (cópia)' }] })) },
-                    { label: '↑ Mover para cima', onClick: () => i > 0 && setState((s) => { const a = [...s.scenes]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; return { ...s, scenes: a } }) },
-                    { label: '↓ Mover para baixo', onClick: () => i < scenes.length - 1 && setState((s) => { const a = [...s.scenes]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; return { ...s, scenes: a } }) },
-                    { label: '🗑 Excluir', danger: true, onClick: () => confirm(`Excluir a cena "${sc.name}"?`) && setState((s) => ({ ...s, scenes: s.scenes.filter((x) => x.id !== sc.id) })) },
+                    { label: 'Aplicar ao vivo', onClick: () => actions.applyScene(sc.id) },
+                    { label: 'Duplicar', onClick: () => setState((s) => ({ ...s, scenes: [...s.scenes, { ...structuredClone(sc), id: uid(), name: sc.name + ' (cópia)' }] })) },
+                    { label: 'Mover para cima', onClick: () => i > 0 && setState((s) => { const a = [...s.scenes]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; return { ...s, scenes: a } }) },
+                    { label: 'Mover para baixo', onClick: () => i < scenes.length - 1 && setState((s) => { const a = [...s.scenes]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; return { ...s, scenes: a } }) },
+                    { label: 'Excluir', danger: true, onClick: () => confirm(`Excluir a cena "${sc.name}"?`) && setState((s) => ({ ...s, scenes: s.scenes.filter((x) => x.id !== sc.id) })) },
                   ])
                 }
               />
@@ -89,7 +90,7 @@ export function ProgramPage() {
               {dirty && <span className="dirty">alterações não salvas</span>}
               <Btn onClick={() => setDraft(structuredClone(saved!))} disabled={!dirty}>Desfazer</Btn>
               <Btn kind="primary" onClick={save} disabled={!dirty}>Salvar cena</Btn>
-              <Btn kind="warn" onClick={() => { save(); actions.applyScene(draft.id) }}>▶ Salvar e aplicar</Btn>
+              <Btn kind="live" icon={Play} onClick={() => { save(); actions.applyScene(draft.id) }}>Salvar e aplicar</Btn>
             </div>
             <Tabs
               value={out}
@@ -340,12 +341,12 @@ export function StyleEditor({ styleId }: { styleId: string }) {
       <div className="row">
         <div className="seg">
           {(['left', 'center', 'right'] as const).map((a) => (
-            <button key={a} className={style.align === a ? 'on' : ''} onClick={() => set({ align: a })}>{a === 'left' ? '⇤' : a === 'center' ? '≡' : '⇥'}</button>
+            <button key={a} className={style.align === a ? 'on' : ''} onClick={() => set({ align: a })}>{a === 'left' ? <AlignLeft size={15} /> : a === 'center' ? <AlignCenter size={15} /> : <AlignRight size={15} />}</button>
           ))}
         </div>
         <div className="seg">
           {(['top', 'center', 'bottom'] as const).map((a) => (
-            <button key={a} className={style.vAlign === a ? 'on' : ''} onClick={() => set({ vAlign: a })}>{a === 'top' ? '⤒' : a === 'center' ? '↕' : '⤓'}</button>
+            <button key={a} className={style.vAlign === a ? 'on' : ''} onClick={() => set({ vAlign: a })}>{a === 'top' ? <AlignVerticalJustifyStart size={15} /> : a === 'center' ? <AlignVerticalJustifyCenter size={15} /> : <AlignVerticalJustifyEnd size={15} />}</button>
           ))}
         </div>
       </div>

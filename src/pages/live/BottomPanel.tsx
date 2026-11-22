@@ -1,24 +1,58 @@
+import { TriangleAlert, Timer, Image as ImageIcon, Sparkles, Layers, Pause, Play, RotateCcw } from 'lucide-react'
 import { useStore, actions, setLive, timerRemaining } from '../../core/store'
 import { useUI, setUI } from '../../ui/uiStore'
-import { Tabs, VisualThumb, Btn, Slider, Toggle, Select, ColorField } from '../../ui/common'
+import { useState } from 'react'
+import { Tabs, VisualThumb, Btn, Slider, Toggle, Select, ColorField, Gallery } from '../../ui/common'
 import { CAMERA_PRESETS } from '../../core/defaults'
 import type { SceneOutputId } from '../../core/types'
 import { fmtTimer, timerColor, useNow } from '../../render/Stage'
 import { cameraDesc } from '../../ui/SceneCard'
 
+const H_KEY = 'projecao-bottom-h'
+const readH = () => {
+  try {
+    return Math.max(160, Math.min(700, parseInt(localStorage.getItem(H_KEY) || '') || Math.round(window.innerHeight * 0.3)))
+  } catch {
+    return Math.round(window.innerHeight * 0.3)
+  }
+}
+
 export function BottomPanel() {
   const tab = useUI((u) => u.bottomTab)
+  const [h, setH] = useState(readH)
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault()
+    const y0 = e.clientY
+    const h0 = h
+    let cur = h0
+    const move = (ev: PointerEvent) => {
+      cur = Math.max(160, Math.min(window.innerHeight * 0.7, h0 - (ev.clientY - y0)))
+      setH(cur)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      try {
+        localStorage.setItem(H_KEY, String(Math.round(cur)))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
   return (
-    <section className="bottom-panel">
+    <section className="bottom-panel" style={{ height: h }}>
+      <div className="resize-handle" onPointerDown={startResize} title="Arraste para aumentar ou diminuir" />
       <Tabs
         value={tab}
         onChange={(v) => setUI({ bottomTab: v })}
         tabs={[
-          { id: 'themes', label: 'Temas (fundo)' },
-          { id: 'overlays', label: 'Sobreposição' },
-          { id: 'layers', label: 'Camadas por tela' },
-          { id: 'alert', label: '⚠ Aviso' },
-          { id: 'stage', label: '⏱ Retorno / Cronômetro' },
+          { id: 'themes', label: <><ImageIcon size={14} /> Temas</> },
+          { id: 'overlays', label: <><Sparkles size={14} /> Sobreposição</> },
+          { id: 'layers', label: <><Layers size={14} /> Camadas</> },
+          { id: 'alert', label: <><TriangleAlert size={14} /> Aviso</> },
+          { id: 'stage', label: <><Timer size={14} /> Retorno</> },
         ]}
       />
       <div className="bp-body">
@@ -36,7 +70,7 @@ function ThemesStrip() {
   const themes = useStore((s) => s.themes)
   const cur = useStore((s) => s.live.themeId)
   return (
-    <div className="strip">
+    <Gallery>
       <VisualThumb visual={{ type: 'none' }} label="Nenhum" active={!cur} onClick={() => actions.setTheme(null)} />
       {themes.map((t) => (
         <VisualThumb key={t.id} visual={t.visual} label={t.name} active={cur === t.id} onClick={() => actions.setTheme(t.id)} />
@@ -45,7 +79,7 @@ function ThemesStrip() {
         <div className="vthumb-img">+</div>
         <span className="vthumb-label">Novo tema</span>
       </button>
-    </div>
+    </Gallery>
   )
 }
 
@@ -55,7 +89,10 @@ function OverlaysStrip() {
   const op = useStore((s) => s.live.overlayOpacity)
   return (
     <div className="strip-wrap">
-      <div className="strip">
+      <div className="ov-intensity">
+        <Slider label="Intensidade" min={0} max={1} step={0.05} value={op} onChange={(v) => setLive((l) => ({ ...l, overlayOpacity: v }))} />
+      </div>
+      <Gallery>
         <VisualThumb visual={{ type: 'none' }} label="Nenhuma" active={!cur} onClick={() => actions.setOverlay(null)} />
         {overlays.map((t) => (
           <VisualThumb key={t.id} visual={t.visual} label={t.name} badge={t.blend !== 'normal' ? t.blend : undefined} active={cur === t.id} onClick={() => actions.setOverlay(t.id)} />
@@ -64,10 +101,7 @@ function OverlaysStrip() {
           <div className="vthumb-img">+</div>
           <span className="vthumb-label">Nova</span>
         </button>
-      </div>
-      <div style={{ width: 200 }}>
-        <Slider label="Intensidade" min={0} max={1} step={0.05} value={op} onChange={(v) => setLive((l) => ({ ...l, overlayOpacity: v }))} />
-      </div>
+      </Gallery>
     </div>
   )
 }
@@ -157,7 +191,7 @@ function AlertQuick() {
           <ColorField label="Texto" value={a.color} onChange={(v) => set({ color: v })} />
         </div>
         <Btn kind={a.visible ? 'danger' : 'warn'} onClick={() => set({ visible: !a.visible })} style={{ width: '100%' }}>
-          {a.visible ? '✕ Esconder aviso' : '⚠ Mostrar aviso'}
+          {a.visible ? 'Esconder aviso' : 'Mostrar aviso'}
         </Btn>
       </div>
     </div>
@@ -194,8 +228,8 @@ export function TimerControls() {
         />
       </div>
       <div className="row wrap">
-        {t.running ? <Btn kind="warn" onClick={actions.timerPause}>❚❚ Pausar</Btn> : <Btn kind="primary" onClick={() => actions.timerStart()}>▶ Iniciar</Btn>}
-        <Btn onClick={() => actions.timerReset()}>⟲ Zerar</Btn>
+        {t.running ? <Btn kind="warn" icon={Pause} onClick={actions.timerPause}>Pausar</Btn> : <Btn kind="primary" icon={Play} onClick={() => actions.timerStart()}>Iniciar</Btn>}
+        <Btn icon={RotateCcw} onClick={() => actions.timerReset()}>Zerar</Btn>
         <Btn onClick={() => actions.timerAdd(60)}>+1 min</Btn>
         <Btn onClick={() => actions.timerAdd(-60)}>−1 min</Btn>
       </div>

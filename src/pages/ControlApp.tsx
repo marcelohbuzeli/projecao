@@ -1,3 +1,4 @@
+import { Radio, SlidersHorizontal, Library, Timer, Settings2, MonitorUp } from 'lucide-react'
 import { useEffect } from 'react'
 import { subscribe, getState, snapshotOf, actions, useStore, setLive } from '../core/store'
 import { startPublisher, publish, startLivePeer, peerStatus } from '../core/sync'
@@ -41,32 +42,36 @@ function TopBar() {
       peerStatus.listeners.delete(l)
     }
   }, [])
-  const tabs: { id: typeof page; label: string }[] = [
-    { id: 'live', label: '● Ao vivo' },
-    { id: 'program', label: '◧ Programação' },
-    { id: 'library', label: '▤ Biblioteca' },
-    { id: 'stage', label: '⏱ Retorno' },
-    { id: 'settings', label: '⚙ Configurações' },
+  const tabs: { id: typeof page; label: string; icon: typeof Radio }[] = [
+    { id: 'live', label: 'Ao vivo', icon: Radio },
+    { id: 'program', label: 'Cenas', icon: SlidersHorizontal },
+    { id: 'library', label: 'Biblioteca', icon: Library },
+    { id: 'stage', label: 'Retorno', icon: Timer },
+    { id: 'settings', label: 'Ajustes', icon: Settings2 },
   ]
+  const live = peerStatus.state === 'online'
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="logo">◆</span> Projeção
+        <span className="logo"><i /><i /><i /></span>
+        <span>Projeção</span>
       </div>
       <nav>
         {tabs.map((t) => (
           <button key={t.id} className={page === t.id ? 'on' : ''} onClick={() => setUI({ page: t.id })}>
+            <t.icon size={15} strokeWidth={1.75} />
             {t.label}
           </button>
         ))}
       </nav>
       <div className="grow" />
-      {black && <span className="status-pill danger">TELA PRETA</span>}
-      <span className={'status-pill ' + (peerStatus.state === 'online' ? 'ok' : '')} title="Envio da letra para o OBS da live">
-        Live: {peerStatus.state === 'online' ? `${peerStatus.clients} OBS` : peerStatus.state}
+      {black && <span className="status-pill danger">Tela preta</span>}
+      <span className={'status-dot ' + (live ? 'ok' : '')} title="Envio da letra para o OBS da live">
+        <i />
+        {live ? `Live · ${peerStatus.clients} OBS` : `Live · ${peerStatus.state}`}
       </span>
-      <button className="btn btn-primary" onClick={openAllOutputs} title="Abre telão, laterais e TV de retorno nos monitores configurados">
-        ▣ Abrir saídas
+      <button className="btn btn-outputs" onClick={openAllOutputs} title="Abre telão, laterais e TV de retorno nos monitores configurados">
+        <MonitorUp size={15} strokeWidth={1.75} /> Abrir saídas
       </button>
       <span className="clock">{fmtClock(now, true)}</span>
     </header>

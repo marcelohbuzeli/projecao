@@ -1,15 +1,17 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { X, type LucideIcon } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { BlendMode, Visual, Snapshot, ResolvedLook } from '../core/types'
 import { useStore } from '../core/store'
 import { Composite, LiveComposite } from '../render/Layers'
 import { StageView } from '../render/Stage'
 
-export function Btn({ children, onClick, kind = 'default', title, small, active, disabled, style }: {
-  children: ReactNode; onClick?: (e: React.MouseEvent) => void; kind?: 'default' | 'primary' | 'danger' | 'ghost' | 'warn'
+export function Btn({ children, onClick, kind = 'default', title, small, active, disabled, style, icon: Icon }: {
+  children?: ReactNode; icon?: LucideIcon; onClick?: (e: React.MouseEvent) => void; kind?: 'default' | 'primary' | 'danger' | 'ghost' | 'warn' | 'live'
   title?: string; small?: boolean; active?: boolean; disabled?: boolean; style?: React.CSSProperties
 }) {
   return (
     <button className={`btn btn-${kind}${small ? ' btn-sm' : ''}${active ? ' active' : ''}`} onClick={onClick} title={title} disabled={disabled} style={style}>
+      {Icon && <Icon size={small ? 14 : 16} strokeWidth={1.75} />}
       {children}
     </button>
   )
@@ -97,7 +99,7 @@ export function Modal({ title, children, onClose, wide, footer }: { title: strin
       <div className={'modal' + (wide ? ' wide' : '')}>
         <header>
           <h3>{title}</h3>
-          <button className="x" onClick={onClose}>✕</button>
+          <button className="x" onClick={onClose}><X size={18} /></button>
         </header>
         <div className="modal-body">{children}</div>
         {footer && <footer>{footer}</footer>}
@@ -149,7 +151,7 @@ export function VisualThumb({ visual, label, active, onClick, onContext, badge, 
     <button className={'vthumb' + (active ? ' active' : '')} onClick={onClick} onContextMenu={onContext} style={style}>
       <div className="vthumb-img" style={visualCss(visual, thumb)}>
         {visual.type === 'shader' && <span className="live-badge">AO VIVO</span>}
-        {visual.type === 'media' && media.find((m) => m.id === visual.mediaId)?.kind === 'video' && <span className="live-badge">▶ LOOP</span>}
+        {visual.type === 'media' && media.find((m) => m.id === visual.mediaId)?.kind === 'video' && <span className="live-badge">LOOP</span>}
         {badge && <span className="badge-r">{badge}</span>}
       </div>
       {label && <span className="vthumb-label">{label}</span>}
@@ -264,4 +266,70 @@ export function useContextMenu() {
   }
   const node = menu ? <ContextMenu {...menu} onClose={() => setMenu(null)} /> : null
   return { open, node }
+}
+
+/**
+ * Galeria arrastável: clique e arraste (para os lados ou para baixo) para rolar,
+ * como num celular. Um clique simples continua selecionando o item.
+ */
+export function useDragScroll<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let down = false
+    let moved = false
+    let sx = 0, sy = 0, sl = 0, st = 0
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0 || (e.target as HTMLElement).closest('input,select,textarea')) return
+      down = true
+      moved = false
+      sx = e.clientX; sy = e.clientY; sl = el.scrollLeft; st = el.scrollTop
+    }
+    const onMove = (e: PointerEvent) => {
+      if (!down) return
+      const dx = e.clientX - sx, dy = e.clientY - sy
+      if (!moved && Math.hypot(dx, dy) > 6) {
+        moved = true
+        el.classList.add('dragging')
+        el.setPointerCapture?.(e.pointerId)
+      }
+      if (moved) {
+        el.scrollLeft = sl - dx
+        el.scrollTop = st - dy
+      }
+    }
+    const onUp = () => {
+      down = false
+      setTimeout(() => el.classList.remove('dragging'), 0)
+    }
+    // impede o clique depois de arrastar
+    const onClick = (e: MouseEvent) => {
+      if (moved) {
+        e.stopPropagation()
+        e.preventDefault()
+        moved = false
+      }
+    }
+    el.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    el.addEventListener('click', onClick, true)
+    return () => {
+      el.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      el.removeEventListener('click', onClick, true)
+    }
+  }, [])
+  return ref
+}
+
+export function Gallery({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const ref = useDragScroll<HTMLDivElement>()
+  return (
+    <div ref={ref} className={'gallery ' + className}>
+      {children}
+    </div>
+  )
 }

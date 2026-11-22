@@ -1,3 +1,4 @@
+import { Music, BookOpen, FolderOpen } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, setState, getState, actions } from '../../core/store'
 import { useUI, setUI, select, goLive, toast } from '../../ui/uiStore'
@@ -28,9 +29,9 @@ export function LeftPanel() {
         value={tab}
         onChange={(v) => setUI({ leftTab: v })}
         tabs={[
-          { id: 'songs', label: '♪ Músicas' },
-          { id: 'bible', label: '✝ Bíblia' },
-          { id: 'files', label: '▣ Arquivos' },
+          { id: 'songs', label: <><Music size={14} /> Músicas</> },
+          { id: 'bible', label: <><BookOpen size={14} /> Bíblia</> },
+          { id: 'files', label: <><FolderOpen size={14} /> Arquivos</> },
         ]}
       />
       {tab === 'songs' && <SongsList />}
@@ -74,14 +75,14 @@ function SongsList() {
             }}
             onContextMenu={(e) =>
               ctx.open(e, [
-                { label: '✎ Editar letra', onClick: () => setUI({ editSongId: s.id }) },
-                { label: '+ Adicionar ao culto', onClick: () => addToService({ type: 'song', songId: s.id }) },
+                { label: 'Editar letra', onClick: () => setUI({ editSongId: s.id }) },
+                { label: 'Adicionar ao culto', onClick: () => addToService({ type: 'song', songId: s.id }) },
                 {
-                  label: '⧉ Duplicar',
+                  label: 'Duplicar',
                   onClick: () => setState((st) => ({ ...st, songs: [...st.songs, { ...structuredClone(s), id: uid(), title: s.title + ' (cópia)' }] })),
                 },
                 {
-                  label: '🗑 Excluir',
+                  label: 'Excluir',
                   danger: true,
                   onClick: () => confirm(`Excluir "${s.title}"?`) && setState((st) => ({ ...st, songs: st.songs.filter((x) => x.id !== s.id) })),
                 },
@@ -265,10 +266,10 @@ function FilesList() {
               ctx.open(e, [
                 ...(m.kind !== 'pptx'
                   ? [
-                      { label: '▶ Mostrar no telão', onClick: () => actions.playMedia(m, false) },
-                      ...(m.kind === 'video' ? [{ label: '⟳ Mostrar em loop', onClick: () => actions.playMedia(m, true) }] : []),
+                      { label: 'Mostrar no telão', onClick: () => actions.playMedia(m, false) },
+                      ...(m.kind === 'video' ? [{ label: 'Mostrar em loop', onClick: () => actions.playMedia(m, true) }] : []),
                       {
-                        label: '★ Usar como tema (fundo)',
+                        label: 'Usar como tema (fundo)',
                         onClick: () => {
                           const id = uid()
                           setState((s) => ({ ...s, themes: [...s.themes, { id, name: m.name, visual: { type: 'media', mediaId: m.id, kind: m.kind as 'image' | 'video' }, dim: 0 }] }))
@@ -278,12 +279,12 @@ function FilesList() {
                       },
                     ]
                   : []),
-                { label: '+ Adicionar ao culto', onClick: () => addToService(m.kind === 'pptx' ? { type: 'pptx', mediaId: m.id } : { type: 'media', mediaId: m.id }) },
+                { label: 'Adicionar ao culto', onClick: () => addToService(m.kind === 'pptx' ? { type: 'pptx', mediaId: m.id } : { type: 'media', mediaId: m.id }) },
               ])
             }
           >
             <div className="fi-thumb" style={{ background: m.thumb ? `#000 url(${m.thumb}) center/cover` : '#1a1a1a' }}>
-              {m.kind === 'video' && <span className="badge-r">▶ {m.duration ? fmtDur(m.duration) : ''}</span>}
+              {m.kind === 'video' && <span className="badge-r">{m.duration ? fmtDur(m.duration) : 'VÍDEO'}</span>}
               {m.kind === 'pptx' && <span className="pptx-ico">P</span>}
             </div>
             <span className="fi-name">{m.name}</span>

@@ -1,3 +1,4 @@
+import { RefreshCw, MonitorUp, Download, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useStore, setState, setLive, getState } from '../core/store'
 import { Btn, Toggle } from '../ui/common'
@@ -85,7 +86,7 @@ function ScreensSection() {
         </div>
       )}
       <div className="row" style={{ marginBottom: 10 }}>
-        <Btn onClick={detect}>⟳ Detectar telas</Btn>
+        <Btn icon={RefreshCw} onClick={detect}>Detectar telas</Btn>
         {screens && <span className="hint">{screens.length} tela(s) encontrada(s)</span>}
       </div>
       {screens && (
@@ -136,7 +137,7 @@ function ScreensSection() {
         </div>
       )}
       <div className="row" style={{ marginTop: 10 }}>
-        <Btn kind="primary" onClick={openAllOutputs}>▣ Abrir todas as saídas</Btn>
+        <Btn icon={MonitorUp} kind="primary" onClick={openAllOutputs}>Abrir todas as saídas</Btn>
       </div>
     </section>
   )
@@ -271,8 +272,8 @@ function BackupSection() {
         Para levar para outro computador ou se prevenir, exporte um backup e importe lá.
       </p>
       <div className="row">
-        <Btn kind="primary" disabled={busy} onClick={async () => { setBusy(true); await exportBackup(); setBusy(false) }}>⬇ Exportar backup (.zip)</Btn>
-        <Btn onClick={() => ref.current?.click()}>⬆ Importar backup</Btn>
+        <Btn kind="primary" disabled={busy} onClick={async () => { setBusy(true); await exportBackup(); setBusy(false) }} icon={Download}>Exportar backup (.zip)</Btn>
+        <Btn icon={Upload} onClick={() => ref.current?.click()}>Importar backup</Btn>
         <input
           ref={ref}
           type="file"

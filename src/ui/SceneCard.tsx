@@ -21,7 +21,7 @@ function OutRow({ label, look }: { label: string; look: OutputLook }) {
     <div className="sc-row">
       <b>{label}</b>
       <span className={look.lyrics ? '' : 'off'} title="Letra">Aa {look.lyrics ? style.name.split('—')[0].trim() : 'sem letra'}</span>
-      {cam && <span className="cam" title="Câmera">● {cam}</span>}
+      {cam && <span className="cam" title="Câmera">{cam}</span>}
       {!look.theme && <span className="off">sem fundo</span>}
     </div>
   )

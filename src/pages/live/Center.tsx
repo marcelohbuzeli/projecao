@@ -1,7 +1,8 @@
+import { SlidersHorizontal, Pencil, Play, Pause, RotateCcw, X, Presentation, ScreenShare, Square } from 'lucide-react'
 import { useState } from 'react'
 import { useStore, actions, setLive, getState, setState } from '../../core/store'
 import { useUI, goLive, setUI, toast } from '../../ui/uiStore'
-import { Btn, Slider, Toggle, useContextMenu } from '../../ui/common'
+import { Btn, Slider, Toggle, useContextMenu, useDragScroll } from '../../ui/common'
 import { SceneCard } from '../../ui/SceneCard'
 import { pptxToWindowedShow, downloadBlob } from '../../core/files'
 import { getBlob } from '../../core/db'
@@ -13,13 +14,14 @@ export function ScenePad() {
   const scenes = useStore((s) => s.scenes)
   const active = useStore((s) => s.live.sceneId)
   const ctx = useContextMenu()
+  const gridRef = useDragScroll<HTMLDivElement>()
   return (
     <section className="scene-pad">
       <div className="sec-head">
         <h4>Cenas</h4>
-        <Btn small kind="ghost" onClick={() => setUI({ page: 'program' })}>✎ Programação de cenas</Btn>
+        <Btn small kind="ghost" icon={SlidersHorizontal} onClick={() => setUI({ page: 'program' })}>Editar cenas</Btn>
       </div>
-      <div className="scene-grid">
+      <div className="scene-grid" ref={gridRef}>
         {scenes.map((sc, i) => (
           <SceneCard
             key={sc.id}
@@ -28,9 +30,9 @@ export function ScenePad() {
             onClick={() => actions.applyScene(sc.id)}
             onContext={(e) =>
               ctx.open(e, [
-                { label: '✎ Editar na Programação', onClick: () => setUI({ page: 'program' }) },
+                { label: 'Editar na Programação', onClick: () => setUI({ page: 'program' }) },
                 {
-                  label: '⧉ Duplicar',
+                  label: 'Duplicar',
                   onClick: () => setState((s) => ({ ...s, scenes: [...s.scenes, { ...structuredClone(sc), id: uid(), name: sc.name + ' (cópia)' }] })),
                 },
               ])
@@ -69,7 +71,7 @@ export function SelectionView() {
         <h4>
           {title}
           {sel.type === 'song' && (
-            <button className="link" onClick={() => setUI({ editSongId: sel.songId })}>✎ editar</button>
+            <button className="link" onClick={() => setUI({ editSongId: sel.songId })}><Pencil size={13} /> editar</button>
           )}
         </h4>
         <span className="hint">clique num slide para colocar no ar</span>
@@ -122,20 +124,20 @@ function MediaPanel({ mediaId }: { mediaId: string }) {
           {isLive && <span className="sc-live" style={{ position: 'absolute', top: 8, left: 8 }}>NO AR</span>}
         </div>
         <div className="media-actions">
-          <Btn kind="primary" onClick={() => actions.playMedia(m, m.kind === 'video' && loop)}>▶ Mostrar no telão</Btn>
+          <Btn kind="live" icon={Play} onClick={() => actions.playMedia(m, m.kind === 'video' && loop)}>Mostrar no telão</Btn>
           {m.kind === 'video' && (
             <>
               <Toggle label="Repetir em loop" value={isLive && live ? live.loop : loop} onChange={(v) => { setLoop(v); if (isLive) setLive((l) => (l.media ? { ...l, media: { ...l.media, loop: v } } : l)) }} />
               {isLive && (
                 <>
-                  <Btn onClick={actions.togglePause}>{live!.playing ? '❚❚ Pausar' : '▶ Continuar'}</Btn>
-                  <Btn onClick={actions.restartMedia}>⟲ Tocar de novo</Btn>
+                  <Btn icon={live!.playing ? Pause : Play} onClick={actions.togglePause}>{live!.playing ? 'Pausar' : 'Continuar'}</Btn>
+                  <Btn icon={RotateCcw} onClick={actions.restartMedia}>Tocar de novo</Btn>
                   <Slider label="Volume" min={0} max={1} step={0.05} value={live!.volume} onChange={(v) => setLive((l) => (l.media ? { ...l, media: { ...l.media, volume: v } } : l))} />
                 </>
               )}
             </>
           )}
-          {isLive && <Btn kind="danger" onClick={actions.clearMedia}>✕ Tirar do ar</Btn>}
+          {isLive && <Btn kind="danger" icon={X} onClick={actions.clearMedia}>Tirar do ar</Btn>}
           <p className="hint">A mídia fica por cima de tudo. Ao tirar do ar, o fundo e a letra que estavam embaixo continuam.</p>
         </div>
       </div>
@@ -209,7 +211,7 @@ function PptxPanel({ mediaId }: { mediaId: string }) {
                   else toast('Não consegui preparar o arquivo — use "Arquivo original"')
                 }}
               >
-                ▶ Abrir no PowerPoint
+                <Presentation size={16} strokeWidth={1.75} /> Abrir no PowerPoint
               </Btn>
               <Btn
                 onClick={async () => {
@@ -227,10 +229,10 @@ function PptxPanel({ mediaId }: { mediaId: string }) {
             <p>Escolha a janela do PowerPoint na lista. Ela vai para o telão, para os laterais e para a TV de retorno.</p>
             <div className="row">
               {!capturing ? (
-                <Btn kind="primary" onClick={() => startCapture(m.name)}>⧉ Capturar janela do PowerPoint</Btn>
+                <Btn kind="live" icon={ScreenShare} onClick={() => startCapture(m.name)}>Capturar janela do PowerPoint</Btn>
               ) : (
                 <>
-                  <Btn kind="danger" onClick={stopCapture}>■ Encerrar apresentação</Btn>
+                  <Btn kind="danger" icon={Square} onClick={stopCapture}>Encerrar apresentação</Btn>
                   <Btn onClick={() => startCapture(m.name)}>Trocar janela</Btn>
                 </>
               )}
