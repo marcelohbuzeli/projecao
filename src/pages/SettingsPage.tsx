@@ -6,6 +6,8 @@ import { peerStatus, stopLivePeer, startLivePeer } from '../core/sync'
 import { exportBackup, importBackup } from '../core/files'
 import { toast } from '../ui/uiStore'
 import { getCameraStream } from '../render/Layers'
+import { randomCode, setupSql, uploadLink, listEnvios, checkUploadCode, type EnviosConfig } from '../core/envios'
+import { refreshEnvios } from './live/EnviosPanel'
 
 // ---------------- telas / janelas de saída ----------------
 type OutKey = 'telao' | 'laterais' | 'retorno'
@@ -261,6 +263,84 @@ function LiveSection() {
   )
 }
 
+function EnviosSection() {
+  const saved = useStore((s) => s.settings.envios)
+  const [status, setStatus] = useState<'' | 'ok' | 'testing' | string>('')
+  useEffect(() => {
+    if (!getState().settings.envios)
+      setState((s) => ({ ...s, settings: { ...s.settings, envios: { url: '', key: '', up: randomCode(), admin: randomCode() } } }))
+  }, [])
+  if (!saved) return null
+  const cfg: EnviosConfig = saved
+  const set = (p: Partial<EnviosConfig>) => setState((s) => ({ ...s, settings: { ...s.settings, envios: { ...cfg, ...p } } }))
+  const ready = !!(cfg.url && cfg.key)
+  const link = ready ? uploadLink(baseUrl(), cfg) : ''
+  const copy = (t: string, msg: string) => {
+    navigator.clipboard.writeText(t)
+    toast(msg)
+  }
+  const test = async () => {
+    setStatus('testing')
+    try {
+      const okUp = await checkUploadCode(cfg)
+      await listEnvios(cfg)
+      if (!okUp) throw new Error('os códigos não batem — rode o script do passo 2 de novo')
+      setStatus('ok')
+      refreshEnvios(true)
+    } catch (e: any) {
+      setStatus(e?.message || String(e))
+    }
+  }
+  return (
+    <section className="card">
+      <h4>Envios dos pastores</h4>
+      <p className="hint">
+        Um link onde os pastores mandam slides, vídeos e avisos, dizendo para qual culto e o que é. Chega na aba <b>Envios</b> do painel (à esquerda), separado por data.
+        Os arquivos ficam num servidor gratuito (Supabase, até 1 GB · 50 MB por arquivo).
+      </p>
+      <ol className="steps env-steps">
+        <li>
+          <b>Crie uma conta grátis</b>
+          <p>Em <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer">supabase.com</a> → <i>New project</i> (qualquer nome, região São Paulo, guarde a senha).</p>
+        </li>
+        <li>
+          <b>Crie a estrutura</b>
+          <p>No projeto: <i>SQL Editor</i> → <i>New query</i> → cole o script → <i>Run</i>.</p>
+          <Btn small kind="primary" onClick={() => copy(setupSql(cfg), 'Script copiado')}>Copiar script</Btn>
+        </li>
+        <li>
+          <b>Conecte este painel</b>
+          <p>Em <i>Project Settings → API Keys</i>/<i>Data API</i>: copie a <i>Project URL</i> e a chave <i>publishable</i> (ou <i>anon</i>).</p>
+          <div className="env-fields">
+            <input placeholder="https://xxxx.supabase.co" value={cfg.url} onChange={(e) => { set({ url: e.target.value.trim() }); setStatus('') }} />
+            <input placeholder="Chave publishable / anon" value={cfg.key} onChange={(e) => { set({ key: e.target.value.trim() }); setStatus('') }} />
+          </div>
+          <div className="row">
+            <Btn small disabled={!ready || status === 'testing'} onClick={test}>Testar conexão</Btn>
+            {status === 'ok' && <span className="status-pill ok">conectado</span>}
+            {status === 'testing' && <span className="status-pill">testando…</span>}
+            {status && status !== 'ok' && status !== 'testing' && <span className="hint" style={{ color: 'var(--live)' }}>{status}</span>}
+          </div>
+        </li>
+        <li>
+          <b>Mande o link para os pastores</b>
+          <p>Funciona no celular. Quem tem o link só consegue enviar — a lista fica só aqui.</p>
+          <div className="row">
+            <input readOnly value={link || 'complete o passo 3'} style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 11 }} onFocus={(e) => e.target.select()} />
+            <Btn small kind="primary" disabled={!ready} onClick={() => copy(link, 'Link copiado')}>Copiar</Btn>
+            <Btn small disabled={!ready} onClick={() => window.open(link, '_blank')}>Abrir</Btn>
+          </div>
+        </li>
+      </ol>
+      <details>
+        <summary>Trocar códigos (se o link vazar)</summary>
+        <p className="hint">Gera códigos novos. Depois rode o script de novo (passo 2) e mande o link novo — o antigo para de funcionar.</p>
+        <Btn small kind="danger" onClick={() => { if (confirm('Gerar códigos novos?')) { set({ up: randomCode(), admin: randomCode() }); setStatus('') } }}>Gerar novos códigos</Btn>
+      </details>
+    </section>
+  )
+}
+
 function BackupSection() {
   const ref = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -328,6 +408,7 @@ export function SettingsPage() {
       <ScreensSection />
       <CameraSection />
       <LiveSection />
+      <EnviosSection />
       <BackupSection />
       <ShortcutsSection />
     </div>

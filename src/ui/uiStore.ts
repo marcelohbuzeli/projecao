@@ -19,7 +19,7 @@ export interface SlideView {
 
 export interface UIState {
   page: 'live' | 'program' | 'library' | 'stage' | 'settings'
-  leftTab: 'songs' | 'bible' | 'files'
+  leftTab: 'songs' | 'bible' | 'files' | 'envios'
   bottomTab: 'themes' | 'overlays' | 'layers' | 'alert' | 'stage'
   selection: Selection
   selectionSlides: SlideView[]

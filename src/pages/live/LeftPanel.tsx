@@ -1,4 +1,5 @@
-import { Music, BookOpen, FolderOpen } from 'lucide-react'
+import { Music, BookOpen, FolderOpen, Inbox } from 'lucide-react'
+import { EnviosPanel, useEnvios } from './EnviosPanel'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, setState, getState, actions } from '../../core/store'
 import { useUI, setUI, select, goLive, toast } from '../../ui/uiStore'
@@ -23,20 +24,24 @@ export function dragData(e: React.DragEvent, item: NewItem) {
 
 export function LeftPanel() {
   const tab = useUI((u) => u.leftTab)
+  const envios = useEnvios()
+  const nNew = envios.list.filter((e) => e.status === 'novo').length
   return (
     <aside className="left-panel">
       <Tabs
         value={tab}
         onChange={(v) => setUI({ leftTab: v })}
         tabs={[
-          { id: 'songs', label: <><Music size={14} /> Músicas</> },
-          { id: 'bible', label: <><BookOpen size={14} /> Bíblia</> },
-          { id: 'files', label: <><FolderOpen size={14} /> Arquivos</> },
+          { id: 'songs', label: <><Music size={14} /><span className="tl">Músicas</span></> },
+          { id: 'bible', label: <><BookOpen size={14} /><span className="tl">Bíblia</span></> },
+          { id: 'files', label: <><FolderOpen size={14} /><span className="tl">Arquivos</span></> },
+          { id: 'envios', label: <><Inbox size={14} /><span className="tl">Envios</span>{nNew > 0 && <b className="tab-badge">{nNew}</b>}</> },
         ]}
       />
       {tab === 'songs' && <SongsList />}
       {tab === 'bible' && <BiblePanel />}
       {tab === 'files' && <FilesList />}
+      {tab === 'envios' && <EnviosPanel />}
     </aside>
   )
 }

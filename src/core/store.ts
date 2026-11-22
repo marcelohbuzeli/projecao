@@ -23,7 +23,7 @@ export interface AppState {
   bibles: BibleMeta[]
   stage: StageConfig
   live: LiveState
-  settings: { roomId: string; bibleId: string; timerPresets: number[]; liveEnabled: boolean; screenMap: Record<string, string>; builtinVersion?: number }
+  settings: { roomId: string; bibleId: string; timerPresets: number[]; liveEnabled: boolean; screenMap: Record<string, string>; builtinVersion?: number; envios?: import('./envios').EnviosConfig; envioMedia?: Record<string, string> }
 }
 
 const initial = (): AppState => ({
