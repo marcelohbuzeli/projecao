@@ -51,12 +51,21 @@ export const defaultThemes = (): Theme[] => [
   { id: 'th-laranja', name: 'Laranja quente', visual: { type: 'gradient', colors: ['#ff7a18', '#7a1fa2'], angle: 135 }, dim: 0.1 },
   { id: 'th-nebulosa', name: 'Nebulosa', visual: { type: 'shader', shader: 'nebulosa', params: { ...defaultShaderParams(), colorA: '#05010f', colorB: '#8a2be2', colorC: '#ff4f9a' } }, dim: 0.1 },
   { id: 'th-ondas', name: 'Ondas azuis', visual: { type: 'shader', shader: 'ondas', params: { ...defaultShaderParams(), colorA: '#020617', colorB: '#0ea5e9', colorC: '#e0f2fe' } }, dim: 0.1 },
+  { id: 'th-plexus', name: 'Plexus', visual: { type: 'shader', shader: 'plexus', params: { ...defaultShaderParams(), colorA: '#030712', colorB: '#38bdf8', colorC: '#a78bfa', speed: 0.4 } }, dim: 0 },
+  { id: 'th-plasma', name: 'Plasma', visual: { type: 'shader', shader: 'plasma', params: { ...defaultShaderParams(), colorA: '#12002b', colorB: '#c026d3', colorC: '#f97316', speed: 0.4 } }, dim: 0.25 },
+  { id: 'th-caleido', name: 'Caleidoscópio', visual: { type: 'shader', shader: 'caleidoscopio', params: { ...defaultShaderParams(), colorA: '#0b0420', colorB: '#4f46e5', colorC: '#fbbf24', speed: 0.5 } }, dim: 0.2 },
+  { id: 'th-tunel', name: 'Túnel de luz', visual: { type: 'shader', shader: 'tunel', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#7c3aed', colorC: '#22d3ee', speed: 0.4 } }, dim: 0.2 },
+  { id: 'th-espiral', name: 'Espiral', visual: { type: 'shader', shader: 'espiral', params: { ...defaultShaderParams(), colorA: '#05010d', colorB: '#f43f5e', colorC: '#fde047', speed: 0.4 } }, dim: 0.15 },
+  { id: 'th-aneis', name: 'Anéis de cor', visual: { type: 'shader', shader: 'aneis', params: { ...defaultShaderParams(), colorA: '#020617', colorB: '#10b981', colorC: '#3b82f6', speed: 0.4 } }, dim: 0.15 },
 ]
 
 export const defaultOverlays = (): Overlay[] => [
   { id: 'ov-particulas', name: 'Partículas', visual: { type: 'shader', shader: 'particulas', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#ffffff', colorC: '#ffd27a', speed: 0.4 } }, blend: 'screen', opacity: 0.8 },
   { id: 'ov-raios', name: 'Raios de luz', visual: { type: 'shader', shader: 'raios', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#fff3d6', colorC: '#ffb347', speed: 0.3 } }, blend: 'screen', opacity: 0.7 },
   { id: 'ov-bokeh', name: 'Bokeh', visual: { type: 'shader', shader: 'bokeh', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#ffcf8a', colorC: '#8ad8ff', speed: 0.3 } }, blend: 'screen', opacity: 0.6 },
+  { id: 'ov-fogos', name: 'Fogos', visual: { type: 'shader', shader: 'fogos', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#ffd166', colorC: '#ff5d8f', speed: 0.5 } }, blend: 'screen', opacity: 0.9 },
+  { id: 'ov-estrelas', name: 'Viagem estelar', visual: { type: 'shader', shader: 'estrelas', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#ffffff', colorC: '#93c5fd', speed: 0.4 } }, blend: 'screen', opacity: 0.8 },
+  { id: 'ov-plexus', name: 'Rede (plexus)', visual: { type: 'shader', shader: 'plexus', params: { ...defaultShaderParams(), colorA: '#000000', colorB: '#ffffff', colorC: '#fde68a', speed: 0.3, intensity: 0.8 } }, blend: 'screen', opacity: 0.6 },
   { id: 'ov-vinheta', name: 'Vinheta escura', visual: { type: 'gradient', colors: ['#00000000', '#000000'], angle: -1 }, blend: 'normal', opacity: 0.8 },
 ]
 
@@ -138,3 +147,6 @@ Botão direito na música para editar
 
 [Final]
 Importe suas músicas na Biblioteca`
+
+/** Aumente quando adicionar temas/sobreposições padrão novos: eles aparecem também em instalações antigas */
+export const BUILTIN_VERSION = 2

@@ -5,7 +5,7 @@ import type {
 } from './types'
 import {
   defaultLive, defaultOverlays, defaultScenes, defaultStage, defaultStyles, defaultThemes, uid, DEMO_SONG_TEXT, baseStyle,
-  defaultAlert, defaultTimer,
+  defaultAlert, defaultTimer, BUILTIN_VERSION,
 } from './defaults'
 import { dbGet, dbSet } from './db'
 import { parseSongText } from './songs'
@@ -23,7 +23,7 @@ export interface AppState {
   bibles: BibleMeta[]
   stage: StageConfig
   live: LiveState
-  settings: { roomId: string; bibleId: string; timerPresets: number[]; liveEnabled: boolean; screenMap: Record<string, string> }
+  settings: { roomId: string; bibleId: string; timerPresets: number[]; liveEnabled: boolean; screenMap: Record<string, string>; builtinVersion?: number }
 }
 
 const initial = (): AppState => ({
@@ -37,7 +37,7 @@ const initial = (): AppState => ({
   bibles: [],
   stage: defaultStage(),
   live: defaultLive(),
-  settings: { roomId: Math.random().toString(36).slice(2, 8), bibleId: '', timerPresets: [5, 10, 15, 30, 45, 60], liveEnabled: true, screenMap: {} },
+  settings: { roomId: Math.random().toString(36).slice(2, 8), bibleId: '', timerPresets: [5, 10, 15, 30, 45, 60], liveEnabled: true, screenMap: {}, builtinVersion: BUILTIN_VERSION },
 })
 
 let state: AppState = initial()
@@ -95,7 +95,7 @@ export async function loadState() {
     state = {
       ...base,
       ...saved,
-      settings: { ...base.settings, ...saved.settings },
+      settings: { ...base.settings, ...saved.settings, builtinVersion: saved.settings?.builtinVersion ?? 1 },
       stage: { ...base.stage, ...saved.stage },
       live: {
         ...base.live,
@@ -103,6 +103,17 @@ export async function loadState() {
         alert: { ...defaultAlert(), ...saved.live?.alert },
         timer: { ...defaultTimer(), ...saved.live?.timer },
       },
+    }
+  }
+  // novos temas/sobreposições padrão de versões novas do sistema
+  if ((state.settings.builtinVersion ?? 1) < BUILTIN_VERSION) {
+    const th = new Set(state.themes.map((t) => t.id))
+    const ov = new Set(state.overlays.map((t) => t.id))
+    state = {
+      ...state,
+      themes: [...state.themes, ...defaultThemes().filter((t) => !th.has(t.id))],
+      overlays: [...state.overlays, ...defaultOverlays().filter((t) => !ov.has(t.id))],
+      settings: { ...state.settings, builtinVersion: BUILTIN_VERSION },
     }
   }
   loaded = true

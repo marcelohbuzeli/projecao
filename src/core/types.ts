@@ -12,7 +12,9 @@ export interface MediaItem {
   createdAt: number
 }
 
-export type ShaderName = 'aurora' | 'ondas' | 'particulas' | 'raios' | 'bokeh' | 'nebulosa' | 'gradiente' | 'grade'
+export type ShaderName =
+  | 'aurora' | 'ondas' | 'particulas' | 'raios' | 'bokeh' | 'nebulosa' | 'gradiente' | 'grade'
+  | 'plexus' | 'fogos' | 'plasma' | 'espiral' | 'aneis' | 'caleidoscopio' | 'tunel' | 'estrelas'
 
 export interface ShaderParams {
   colorA: string
