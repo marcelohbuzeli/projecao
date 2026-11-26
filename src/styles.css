@@ -634,3 +634,12 @@ button.slide:hover { border-color: var(--line3); background: var(--raised); }
 .up-err { color: var(--live); font-size: 13px; background: color-mix(in srgb, var(--live) 10%, transparent); border-radius: 8px; padding: 8px 10px; margin: 0; }
 .up-ok { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); }
 .up-checking { display: flex; align-items: center; gap: 6px; margin: -8px 0 0; }
+
+/* busca de letras na internet */
+.web-search { padding: 6px 0 10px; }
+.web-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 9px; border: 1px dashed var(--line3); background: none; color: var(--dim); font: 500 12.5px var(--font); }
+.web-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.web-head { display: flex; align-items: center; gap: 6px; margin: 12px 8px 6px; font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+.web-item .li-title::after { content: ''; }
+.web-foot { margin: 8px; color: var(--dim2); font-size: 11px; text-align: center; }
+.web-search .up-err { margin: 8px 0 0; }

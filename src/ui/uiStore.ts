@@ -27,6 +27,7 @@ export interface UIState {
   // o que está no ar
   cursor: { key: string; title: string; kind: 'song' | 'bible'; slides: SlideView[]; index: number } | null
   editSongId: string | null
+  songDraft: string | null
   libraryTab: 'files' | 'themes' | 'overlays' | 'songs' | 'bibles'
   toast: string
 }
@@ -40,6 +41,7 @@ let ui: UIState = {
   selectionTitle: '',
   cursor: null,
   editSongId: null,
+  songDraft: null,
   libraryTab: 'files',
   toast: '',
 }

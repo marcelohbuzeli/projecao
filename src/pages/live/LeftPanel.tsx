@@ -1,4 +1,5 @@
-import { Music, BookOpen, FolderOpen, Inbox } from 'lucide-react'
+import { Music, BookOpen, FolderOpen, Inbox, Globe, Loader2 } from 'lucide-react'
+import { searchLyrics, webLyricToText, type WebLyric } from '../../core/lyricsWeb'
 import { EnviosPanel, useEnvios } from './EnviosPanel'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, setState, getState, actions } from '../../core/store'
@@ -46,12 +47,66 @@ export function LeftPanel() {
   )
 }
 
+const fmtMin = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`
+
+function WebSearch({ q, runRef }: { q: string; runRef: React.MutableRefObject<(() => void) | null> }) {
+  const [res, setRes] = useState<{ q: string; items: WebLyric[] } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const run = async () => {
+    setBusy(true)
+    setErr('')
+    try {
+      setRes({ q, items: await searchLyrics(q) })
+    } catch (e: any) {
+      setErr(navigator.onLine ? 'A busca não respondeu. Tente de novo.' : 'Sem internet neste computador.')
+    }
+    setBusy(false)
+  }
+  runRef.current = run
+  const stale = !res || res.q !== q
+  return (
+    <div className="web-search">
+      {stale ? (
+        <button className="web-btn" onClick={run} disabled={busy}>
+          {busy ? <Loader2 size={14} className="spin" /> : <Globe size={14} />}
+          {busy ? 'Buscando na internet…' : <>Buscar “{q.trim()}” na internet</>}
+        </button>
+      ) : (
+        <>
+          <div className="web-head">
+            <Globe size={12} /> Na internet {busy && <Loader2 size={12} className="spin" />}
+          </div>
+          {res.items.map((w) => (
+            <div
+              key={w.id}
+              className="list-item web-item"
+              title="Clique para revisar e salvar"
+              onClick={() => setUI({ editSongId: 'new', songDraft: webLyricToText(w) })}
+            >
+              <div className="li-main">
+                <span className="li-title">{w.title}</span>
+                <span className="li-sub">{[w.artist, w.album].filter(Boolean).join(' · ')}</span>
+              </div>
+              <span className="li-meta">{w.duration ? fmtMin(w.duration) : ''}</span>
+            </div>
+          ))}
+          {!res.items.length && <div className="empty">Nada encontrado. Tente com o nome do artista junto.</div>}
+          <div className="web-foot">Letras de lrclib.net · confira antes de projetar</div>
+        </>
+      )}
+      {err && <p className="up-err">{err}</p>}
+    </div>
+  )
+}
+
 function SongsList() {
   const songs = useStore((s) => s.songs)
   const sel = useUI((u) => u.selection)
   const cursorKey = useUI((u) => u.cursor?.key)
   const [q, setQ] = useState('')
   const ctx = useContextMenu()
+  const webRef = useRef<(() => void) | null>(null)
   const list = useMemo(() => {
     const n = norm(q)
     const sorted = [...songs].sort((a, b) => a.title.localeCompare(b.title, 'pt'))
@@ -63,7 +118,13 @@ function SongsList() {
   return (
     <div className="panel-col">
       <div className="search-row">
-        <input placeholder="Buscar título, artista ou trecho…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+        <input
+          placeholder="Buscar título, artista ou trecho…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !list.length && q.trim().length >= 3 && webRef.current?.()}
+          autoFocus
+        />
         <Btn small kind="primary" title="Nova música" onClick={() => setUI({ editSongId: 'new' })}>+</Btn>
       </div>
       <div className="list">
@@ -102,7 +163,8 @@ function SongsList() {
             <button className="li-add" title="Adicionar ao culto" onClick={(e) => { e.stopPropagation(); addToService({ type: 'song', songId: s.id }) }}>+</button>
           </div>
         ))}
-        {!list.length && <div className="empty">Nenhuma música. Importe na Biblioteca ou clique em +.</div>}
+        {!list.length && !q.trim() && <div className="empty">Nenhuma música. Importe na Biblioteca ou clique em +.</div>}
+        {q.trim().length >= 3 && <WebSearch q={q} runRef={webRef} />}
       </div>
       <div className="panel-foot">{songs.length} músicas · botão direito para editar</div>
       {ctx.node}

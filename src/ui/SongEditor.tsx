@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { getState, setState } from '../core/store'
 import { parseSongText, songToText, splitSlides } from '../core/songs'
 import { Modal, Btn } from './common'
-import { setUI, refreshCursorFromSong, toast, select } from './uiStore'
+import { setUI, getUI, refreshCursorFromSong, toast, select } from './uiStore'
 import type { Song } from '../core/types'
 import { uid } from '../core/defaults'
 
@@ -19,10 +19,10 @@ Outra linha`
 
 export function SongEditor({ songId }: { songId: string }) {
   const original = songId === 'new' ? null : getState().songs.find((s) => s.id === songId) ?? null
-  const [text, setText] = useState(original ? songToText(original) : NEW_TEMPLATE)
+  const [text, setText] = useState(() => (original ? songToText(original) : getUI().songDraft ?? NEW_TEMPLATE))
   const [maxLines, setMaxLines] = useState(2)
   const parsed = useMemo(() => parseSongText(text), [text])
-  const close = () => setUI({ editSongId: null })
+  const close = () => setUI({ editSongId: null, songDraft: null })
 
   const save = () => {
     const song: Song = { ...parsed, id: original?.id ?? uid(), updatedAt: Date.now() }
