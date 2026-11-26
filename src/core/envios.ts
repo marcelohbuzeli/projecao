@@ -35,7 +35,10 @@ export interface Envio {
   file_size: number | null
   mime: string | null
   status: 'novo' | 'importado'
+  expires_on: string | null // YYYY-MM-DD: apagado depois deste dia · null = permanente
 }
+
+export const SCHEMA_VERSION = 2
 
 export const MAX_FILE = 50 * 1024 * 1024
 
@@ -130,7 +133,7 @@ export function uploadFile(cfg: Omit<EnviosConfig, 'admin'>, file: File, date: s
   })
 }
 
-export async function createEnvio(cfg: Omit<EnviosConfig, 'admin'>, e: Omit<Envio, 'id' | 'created_at' | 'status'>) {
+export async function createEnvio(cfg: Omit<EnviosConfig, 'admin'>, e: Omit<Envio, 'id' | 'created_at' | 'status' | 'expires_on'> & { expires_on?: string | null }) {
   const r = await fetch(`${cleanUrl(cfg.url)}/rest/v1/envios`, {
     method: 'POST',
     headers: headers({ ...cfg, admin: '' }, { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
@@ -141,6 +144,23 @@ export async function createEnvio(cfg: Omit<EnviosConfig, 'admin'>, e: Omit<Envi
 
 // ---------- lado do operador ----------
 export const listEnvios = (cfg: EnviosConfig) => rpc<Envio[]>(cfg, 'envios_list', { admin: cfg.admin })
+export const setEnvioExpiry = (cfg: EnviosConfig, id: string, d: string | null) => rpc<null>(cfg, 'envios_set_expiry', { admin: cfg.admin, envio: id, d })
+export async function schemaVersion(cfg: Omit<EnviosConfig, 'admin'>) {
+  try {
+    return (await rpc<number>({ ...cfg, admin: '' }, 'envios_version', {})) ?? 1
+  } catch {
+    return 1
+  }
+}
+export const isExpired = (e: Envio, today = isoDate(new Date())) => !!e.expires_on && e.expires_on < today
+export function addDays(iso: string, n: number) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return isoDate(new Date(y, m - 1, d + n))
+}
+export function fmtShort(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: y !== new Date().getFullYear() ? '2-digit' : undefined })
+}
 export const setEnvioStatus = (cfg: EnviosConfig, id: string, status: Envio['status']) => rpc<null>(cfg, 'envios_set_status', { admin: cfg.admin, envio: id, new_status: status })
 
 export async function deleteEnvio(cfg: EnviosConfig, e: Envio) {
@@ -176,6 +196,9 @@ create table if not exists public.envios (
   status text not null default 'novo'
 );
 alter table public.envios enable row level security;
+alter table public.envios add column if not exists expires_on date;
+
+create or replace function public.envios_version() returns int language sql immutable as $$ select 2 $$;
 
 create or replace function public.envios_check(c text) returns boolean
   language sql stable security definer set search_path = public
@@ -191,6 +214,10 @@ create or replace function public.envios_list(admin text) returns setof public.e
 create or replace function public.envios_set_status(admin text, envio uuid, new_status text) returns void
   language sql security definer set search_path = public
   as $$ update envios set status = new_status where id = envio and exists(select 1 from envios_config where id = 1 and admin_code = admin) $$;
+
+create or replace function public.envios_set_expiry(admin text, envio uuid, d date) returns void
+  language sql security definer set search_path = public
+  as $$ update envios set expires_on = d where id = envio and exists(select 1 from envios_config where id = 1 and admin_code = admin) $$;
 
 create or replace function public.envios_delete(admin text, envio uuid) returns void
   language sql security definer set search_path = public

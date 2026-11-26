@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Upload, Check, FileText, X, Presentation, Megaphone, Film, Image as ImageIcon, Paperclip, Loader2 } from 'lucide-react'
-import { parseUploadParam, checkUploadCode, uploadFile, createEnvio, ENVIO_KINDS, MAX_FILE, nextWeekday, isoDate, fmtServiceDate, type EnvioKind } from '../core/envios'
+import { Upload, Check, Clock, Infinity as InfinityIcon, CalendarX, FileText, X, Presentation, Megaphone, Film, Image as ImageIcon, Paperclip, Loader2 } from 'lucide-react'
+import { parseUploadParam, checkUploadCode, uploadFile, createEnvio, ENVIO_KINDS, MAX_FILE, nextWeekday, isoDate, fmtServiceDate, schemaVersion, fmtShort, type EnvioKind } from '../core/envios'
 import { fmtSize } from '../ui/common'
 
 const KIND_ICONS = { slide: Presentation, aviso: Megaphone, video: Film, imagem: ImageIcon, outro: Paperclip }
@@ -20,6 +20,9 @@ export function UploadPage({ param }: { param: string | null }) {
   const [kind, setKind] = useState<EnvioKind>('slide')
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
+  const [keep, setKeep] = useState<'culto' | 'data' | 'sempre'>('culto')
+  const [delDate, setDelDate] = useState('')
+  const [schema, setSchema] = useState(1)
   const [files, setFiles] = useState<File[]>([])
   const [progress, setProgress] = useState<number[]>([])
   const [busy, setBusy] = useState(false)
@@ -31,7 +34,10 @@ export function UploadPage({ param }: { param: string | null }) {
   useEffect(() => {
     const prev = document.title
     document.title = 'Enviar para a projeção'
-    if (cfg) checkUploadCode(cfg).then(setValid, () => setValid(false))
+    if (cfg) {
+      checkUploadCode(cfg).then(setValid, () => setValid(false))
+      schemaVersion(cfg).then(setSchema)
+    }
     else setValid(false)
     return () => {
       document.title = prev
@@ -59,7 +65,8 @@ export function UploadPage({ param }: { param: string | null }) {
   }
 
   const needsFile = kind !== 'aviso'
-  const canSend = !busy && name.trim() && date && (files.length > 0 || (!needsFile && note.trim()))
+  const expires = keep === 'sempre' ? null : keep === 'data' ? delDate || date : date
+  const canSend = !busy && (keep !== 'data' || (delDate && delDate >= isoDate(new Date()))) && name.trim() && date && (files.length > 0 || (!needsFile && note.trim()))
 
   const send = async () => {
     if (!canSend) return
@@ -71,7 +78,7 @@ export function UploadPage({ param }: { param: string | null }) {
       /* */
     }
     try {
-      const base = { service_date: date, kind, sender: name.trim(), title: title.trim() || null, note: note.trim() || null }
+      const base = { service_date: date, kind, sender: name.trim(), title: title.trim() || null, note: note.trim() || null, ...(schema >= 2 ? { expires_on: expires } : {}) }
       if (!files.length) {
         await createEnvio(cfg, { ...base, file_path: null, file_name: null, file_size: null, mime: null })
       } else {
@@ -98,6 +105,7 @@ export function UploadPage({ param }: { param: string | null }) {
           <p className="hint">
             Já está no painel da projeção, no culto de <b>{fmtServiceDate(date).toLowerCase()}</b>.
           </p>
+          <p className="hint">{expires ? <>Será apagado automaticamente depois de <b>{fmtShort(expires)}</b>.</> : <>Marcado como <b>permanente</b>: não será apagado automaticamente.</>}</p>
           <button
             className="up-btn"
             onClick={() => {
@@ -217,6 +225,32 @@ export function UploadPage({ param }: { param: string | null }) {
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="up-field">
+          <span>Por quanto tempo guardar?</span>
+          <div className="up-keep">
+            <button className={'up-kind' + (keep === 'culto' ? ' on' : '')} onClick={() => setKeep('culto')}>
+              <Clock size={18} strokeWidth={1.75} />
+              <span>Até o culto<small>apaga depois de {fmtShort(date)}</small></span>
+            </button>
+            <button className={'up-kind' + (keep === 'data' ? ' on' : '')} onClick={() => { setKeep('data'); if (!delDate) setDelDate(date) }}>
+              <CalendarX size={18} strokeWidth={1.75} />
+              <span>Escolher data<small>apaga depois do dia</small></span>
+            </button>
+            <button className={'up-kind' + (keep === 'sempre' ? ' on' : '')} onClick={() => setKeep('sempre')}>
+              <InfinityIcon size={18} strokeWidth={1.75} />
+              <span>Permanente<small>nunca apaga sozinho</small></span>
+            </button>
+          </div>
+          {keep === 'data' && <input type="date" value={delDate} min={isoDate(new Date())} onChange={(e) => setDelDate(e.target.value)} />}
+          <p className="up-notice">
+            {expires ? (
+              <>Para economizar espaço, este envio será <b>apagado automaticamente depois de {fmtShort(expires)}</b>. Se precisar dele por mais tempo, escolha outra data ou marque <b>Permanente</b>.</>
+            ) : (
+              <>Este envio ficará guardado <b>sem prazo</b>. Use só para o que vai ser reaproveitado (vinhetas, logos, vídeos fixos).</>
+            )}
+          </p>
         </div>
 
         {err && <p className="up-err">{err}</p>}

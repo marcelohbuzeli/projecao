@@ -1,9 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { RefreshCw, Download, Trash2, Plus, Megaphone, Presentation, Film, Image as ImageIcon, Paperclip, Inbox, Settings2, Loader2 } from 'lucide-react'
+import { Clock, Infinity as InfinityIcon, RefreshCw, Download, Trash2, Plus, Megaphone, Presentation, Film, Image as ImageIcon, Paperclip, Inbox, Settings2, Loader2 } from 'lucide-react'
 import { useStore, getState, setState, setLive } from '../../core/store'
 import { setUI, select, toast } from '../../ui/uiStore'
-import { Btn, fmtSize } from '../../ui/common'
-import { listEnvios, downloadEnvio, deleteEnvio, setEnvioStatus, fmtServiceDate, isoDate, ENVIO_KINDS, type Envio } from '../../core/envios'
+import { Btn, fmtSize, useContextMenu } from '../../ui/common'
+import { deleteBlob } from '../../core/db'
+import { listEnvios, downloadEnvio, deleteEnvio, setEnvioStatus, fmtServiceDate, isoDate, ENVIO_KINDS, isExpired, setEnvioExpiry, addDays, fmtShort, type Envio } from '../../core/envios'
 import { importMediaFiles, kindOf, downloadBlob } from '../../core/files'
 import { addToService } from './LeftPanel'
 
@@ -27,7 +28,13 @@ export async function refreshEnvios(quiet = false) {
   emit()
   try {
     const before = new Set(st.list.map((e) => e.id))
-    const list = await listEnvios(cfg)
+    let list = await listEnvios(cfg)
+    const expired = list.filter((e) => isExpired(e))
+    if (expired.length) {
+      for (const e of expired) await purge(e).catch(() => {})
+      list = list.filter((e) => !expired.includes(e))
+      toast(`${expired.length} envio(s) vencido(s) apagado(s)`)
+    }
     const fresh = st.loaded ? list.filter((e) => !before.has(e.id)) : []
     st.list = list
     st.error = ''
@@ -59,6 +66,40 @@ export function useEnvios() {
   )
 }
 
+// ---------- limpeza automática ----------
+/** Apaga do servidor e a cópia importada neste computador (se não estiver no ar nem virou tema). */
+async function purge(e: Envio) {
+  const cfg = getState().settings.envios!
+  await deleteEnvio(cfg, e)
+  const mediaId = getState().settings.envioMedia?.[e.id]
+  const s = getState()
+  const inUse =
+    !!mediaId &&
+    (s.live.media?.mediaId === mediaId ||
+      [...s.themes, ...s.overlays].some((t) => t.visual.type === 'media' && t.visual.mediaId === mediaId))
+  if (mediaId && !inUse) {
+    await deleteBlob(mediaId).catch(() => {})
+    setState((st) => ({
+      ...st,
+      media: st.media.filter((x) => x.id !== mediaId),
+      service: st.service.filter((x) => !('mediaId' in x) || x.mediaId !== mediaId),
+    }))
+  }
+  setState((st) => {
+    const m = { ...st.settings.envioMedia }
+    delete m[e.id]
+    return { ...st, settings: { ...st.settings, envioMedia: m } }
+  })
+}
+
+function parseBr(t: string | null) {
+  const m = t?.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/)
+  if (!m) return null
+  const y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : new Date().getFullYear()
+  const d = new Date(y, +m[2] - 1, +m[1])
+  return isNaN(+d) ? null : isoDate(d)
+}
+
 // ---------- ações ----------
 async function importEnvio(e: Envio): Promise<string | null> {
   const cfg = getState().settings.envios!
@@ -85,6 +126,30 @@ function EnvioRow({ e }: { e: Envio }) {
   const localId = useStore((s) => s.settings.envioMedia?.[e.id])
   const imported = !!localId && media.some((m) => m.id === localId)
   const I = KIND_ICONS[e.kind] ?? Paperclip
+  const ctx = useContextMenu()
+  const setExp = (d: string | null) =>
+    run(async () => {
+      await setEnvioExpiry(getState().settings.envios!, e.id, d)
+      await refreshEnvios(true)
+      toast(d ? `Será apagado depois de ${fmtShort(d)}` : 'Marcado como permanente')
+    })
+  const expMenu = (ev: React.MouseEvent) =>
+    ctx.open(ev, [
+      { label: `Até o culto (${fmtShort(e.service_date)})`, onClick: () => setExp(e.service_date) },
+      { label: '1 semana depois do culto', onClick: () => setExp(addDays(e.service_date, 7)) },
+      { label: '1 mês depois do culto', onClick: () => setExp(addDays(e.service_date, 30)) },
+      {
+        label: 'Escolher data…',
+        onClick: () => {
+          const raw = prompt('Apagar depois de qual dia? (dd/mm/aaaa)', e.expires_on ? fmtShort(e.expires_on) : '')
+          if (raw === null) return
+          const d = parseBr(raw)
+          if (d) setExp(d)
+          else toast('Data inválida')
+        },
+      },
+      { label: 'Permanente (nunca apagar)', onClick: () => setExp(null) },
+    ])
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
     try {
@@ -107,6 +172,11 @@ function EnvioRow({ e }: { e: Envio }) {
           {ENVIO_KINDS.find((k) => k.id === e.kind)?.label} · {e.sender || 'sem nome'}
           {e.file_size ? ' · ' + fmtSize(e.file_size) : ''}
         </div>
+        {'expires_on' in e && (
+          <button className={'envio-exp' + (e.expires_on ? '' : ' perm')} onClick={expMenu} title="Mudar quando este envio é apagado">
+            {e.expires_on ? <><Clock size={11} /> apaga depois de {fmtShort(e.expires_on)}</> : <><InfinityIcon size={11} /> permanente</>}
+          </button>
+        )}
         {e.note && <div className="envio-note">{e.note}</div>}
         <div className="envio-actions">
           {e.file_path ? (
@@ -141,6 +211,7 @@ function EnvioRow({ e }: { e: Envio }) {
           </button>
         </div>
       </div>
+      {ctx.node}
     </div>
   )
 }

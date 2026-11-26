@@ -6,7 +6,7 @@ import { peerStatus, stopLivePeer, startLivePeer } from '../core/sync'
 import { exportBackup, importBackup } from '../core/files'
 import { toast } from '../ui/uiStore'
 import { getCameraStream } from '../render/Layers'
-import { randomCode, setupSql, uploadLink, listEnvios, checkUploadCode, type EnviosConfig } from '../core/envios'
+import { randomCode, setupSql, uploadLink, listEnvios, checkUploadCode, schemaVersion, SCHEMA_VERSION, type EnviosConfig } from '../core/envios'
 import { refreshEnvios } from './live/EnviosPanel'
 
 // ---------------- telas / janelas de saída ----------------
@@ -285,6 +285,7 @@ function EnviosSection() {
       const okUp = await checkUploadCode(cfg)
       await listEnvios(cfg)
       if (!okUp) throw new Error('os códigos não batem — rode o script do passo 2 de novo')
+      if ((await schemaVersion(cfg)) < SCHEMA_VERSION) throw new Error('o sistema foi atualizado — copie o script do passo 2 e rode de novo no Supabase')
       setStatus('ok')
       refreshEnvios(true)
     } catch (e: any) {
@@ -296,7 +297,8 @@ function EnviosSection() {
       <h4>Envios dos pastores</h4>
       <p className="hint">
         Um link onde os pastores mandam slides, vídeos e avisos, dizendo para qual culto e o que é. Chega na aba <b>Envios</b> do painel (à esquerda), separado por data.
-        Os arquivos ficam num servidor gratuito (Supabase, até 1 GB · 50 MB por arquivo).
+        Os arquivos ficam num servidor gratuito (Supabase, até 1 GB · 50 MB por arquivo). Envios com prazo são apagados sozinhos depois da data
+        (do servidor e deste computador) — quem envia escolhe “até o culto”, uma data ou “permanente”, e você pode mudar na aba Envios.
       </p>
       <ol className="steps env-steps">
         <li>
