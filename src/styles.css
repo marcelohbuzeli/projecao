@@ -437,9 +437,9 @@ button.slide:hover { border-color: var(--line3); background: var(--raised); }
 .ctx-menu button:hover { background: var(--hover); }
 .ctx-menu button.danger { color: #ff8a82; }
 .ctx-menu button.danger:hover { background: var(--live-soft); }
-.modal-bg { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(3px); z-index: 500; display: grid; place-items: center; padding: 24px; animation: fadeIn 0.12s; }
-.modal { background: var(--panel); border: 1px solid var(--line2); border-radius: 14px; width: min(560px, 100%); max-height: 100%; display: flex; flex-direction: column; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7); animation: rise 0.16s ease-out; }
-.modal.wide { width: min(1120px, 100%); height: min(780px, 100%); }
+.modal-bg { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(3px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeIn 0.12s; }
+.modal { background: var(--panel); border: 1px solid var(--line2); border-radius: 14px; width: min(560px, 100%); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7); animation: rise 0.16s ease-out; }
+.modal.wide { width: min(1120px, 100%); height: min(780px, calc(100dvh - 48px)); }
 .modal header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 .modal header h3 { font-size: 14px; }
 .modal header .x { background: none; border: 0; color: var(--dim); display: grid; place-items: center; padding: 4px; border-radius: 6px; }
@@ -654,3 +654,5 @@ button.slide:hover { border-color: var(--line3); background: var(--raised); }
 .envio-exp { margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line2); background: none; color: var(--dim); font: 500 10.5px var(--mono); }
 .envio-exp:hover { color: var(--text); border-color: var(--line3); }
 .envio-exp.perm { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+/* letra centralizada nas prévias, como fica na tela */
+.slide-grid:not(.bible) .slide-text { text-align: center; align-self: stretch; margin: auto 0; }
