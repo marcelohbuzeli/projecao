@@ -1,4 +1,5 @@
-import { Radio, SlidersHorizontal, Library, Timer, Settings2, MonitorUp } from 'lucide-react'
+import { Radio, SlidersHorizontal, Library, Timer, Settings2, MonitorUp, Maximize, Minimize } from 'lucide-react'
+import { toggleFullscreen, useIsFullscreen, useAutoFullscreen } from '../ui/fullscreen'
 import { useEffect } from 'react'
 import { subscribe, getState, snapshotOf, actions, useStore, setLive } from '../core/store'
 import { startPublisher, publish, startLivePeer, peerStatus } from '../core/sync'
@@ -30,8 +31,19 @@ function LivePage() {
   )
 }
 
+function FullscreenBtn() {
+  const fs = useIsFullscreen()
+  const I = fs ? Minimize : Maximize
+  return (
+    <button className="btn btn-icon" onClick={toggleFullscreen} title={fs ? 'Sair da tela cheia (ou segure Esc)' : 'Tela cheia (sem a barra do navegador)'}>
+      <I size={15} strokeWidth={1.75} />
+    </button>
+  )
+}
+
 function TopBar() {
   const page = useUI((u) => u.page)
+  useAutoFullscreen()
   const black = useStore((s) => s.live.black)
   const now = useNow(1000)
   const [, force] = useState(0)
@@ -73,6 +85,7 @@ function TopBar() {
       <button className="btn btn-outputs" onClick={openAllOutputs} title="Abre telão, laterais e TV de retorno nos monitores configurados">
         <MonitorUp size={15} strokeWidth={1.75} /> Abrir saídas
       </button>
+      <FullscreenBtn />
       <span className="clock">{fmtClock(now, true)}</span>
     </header>
   )

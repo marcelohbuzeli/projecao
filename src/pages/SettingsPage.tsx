@@ -6,6 +6,7 @@ import { peerStatus, stopLivePeer, startLivePeer } from '../core/sync'
 import { exportBackup, importBackup } from '../core/files'
 import { toast } from '../ui/uiStore'
 import { getCameraStream } from '../render/Layers'
+import { toggleFullscreen } from '../ui/fullscreen'
 import { randomCode, setupSql, uploadLink, listEnvios, checkUploadCode, schemaVersion, SCHEMA_VERSION, type EnviosConfig } from '../core/envios'
 import { refreshEnvios } from './live/EnviosPanel'
 
@@ -65,6 +66,30 @@ export async function openOutput(id: OutKey | 'live') {
 
 export async function openAllOutputs() {
   for (const id of ['telao', 'laterais', 'retorno'] as OutKey[]) await openOutput(id)
+}
+
+function OperatorScreenSection() {
+  const auto = useStore((s) => s.settings.autoFullscreen ?? true)
+  return (
+    <section className="card">
+      <h4>Tela do operador</h4>
+      <p className="hint">
+        Em tela cheia o painel ocupa o monitor inteiro, sem abas, endereço nem os botões de fechar/minimizar.
+        Um toque no <b>Esc</b> continua limpando a letra; para sair da tela cheia, <b>segure o Esc</b> ou use o botão ⛶ no canto de cima.
+      </p>
+      <div className="row">
+        <Toggle label="Entrar em tela cheia sozinho ao abrir (no primeiro clique)" value={auto} onChange={(v) => setState((s) => ({ ...s, settings: { ...s.settings, autoFullscreen: v } }))} />
+        <Btn small onClick={toggleFullscreen}>Tela cheia agora</Btn>
+      </div>
+      <details style={{ marginTop: 10 }}>
+        <summary>Abrir como aplicativo (ícone na área de trabalho)</summary>
+        <p className="hint">
+          No Chrome, clique no ícone de instalar na barra de endereço (ou menu ⋮ → <i>Transmitir, salvar e compartilhar → Instalar página como app</i>).
+          Aparece o ícone “Projeção” na área de trabalho e na barra de tarefas, abrindo numa janela própria, sem abas.
+        </p>
+      </details>
+    </section>
+  )
 }
 
 function ScreensSection() {
@@ -407,6 +432,7 @@ function ShortcutsSection() {
 export function SettingsPage() {
   return (
     <div className="settings-page">
+      <OperatorScreenSection />
       <ScreensSection />
       <CameraSection />
       <LiveSection />

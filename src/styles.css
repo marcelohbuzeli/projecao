@@ -656,3 +656,5 @@ button.slide:hover { border-color: var(--line3); background: var(--raised); }
 .envio-exp.perm { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 /* letra centralizada nas prévias, como fica na tela */
 .slide-grid:not(.bible) .slide-text { text-align: center; align-self: stretch; margin: auto 0; }
+.btn-icon { padding: 0; width: 32px; justify-content: center; background: transparent; border-color: var(--line3); }
+.btn-icon:hover { border-color: var(--accent) !important; color: var(--accent); }
