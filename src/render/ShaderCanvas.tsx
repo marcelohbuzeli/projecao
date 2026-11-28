@@ -61,7 +61,7 @@ function getProgram(name: ShaderName) {
   g.attachShader(prog, sh(g.FRAGMENT_SHADER, fragmentSource(name)))
   g.linkProgram(prog)
   const loc: Record<string, WebGLUniformLocation | null> = {}
-  for (const u of ['uRes', 'uTime', 'cA', 'cB', 'cC', 'uInt', 'uScale']) loc[u] = g.getUniformLocation(prog, u)
+  for (const u of ['uRes', 'uTime', 'cA', 'cB', 'cC', 'uInt', 'uScale', 'uWarp', 'uGrain', 'uGlow', 'uContrast', 'uVig', 'uDark', 'uTint', 'uTintAmt']) loc[u] = g.getUniformLocation(prog, u)
   p = { prog, loc }
   programs.set(name, p)
   return p
@@ -100,6 +100,15 @@ function frame() {
     g.uniform3fv(p.loc.cC, hex(it.params.colorC))
     g.uniform1f(p.loc.uInt, it.params.intensity)
     g.uniform1f(p.loc.uScale, it.params.scale)
+    const pr = it.params
+    g.uniform1f(p.loc.uWarp, pr.warp ?? 0)
+    g.uniform1f(p.loc.uGrain, pr.grain ?? 0)
+    g.uniform1f(p.loc.uGlow, pr.glow ?? 0)
+    g.uniform1f(p.loc.uContrast, pr.contrast ?? 1)
+    g.uniform1f(p.loc.uVig, pr.vignette ?? 0)
+    g.uniform1f(p.loc.uDark, pr.dark ?? 0)
+    g.uniform3fv(p.loc.uTint, hex(pr.tint ?? '#ffffff'))
+    g.uniform1f(p.loc.uTintAmt, pr.tintAmt ?? 0)
     g.drawArrays(g.TRIANGLES, 0, 6)
     // WebGL desenha de baixo para cima: copia a região inferior-esquerda
     it.ctx.drawImage(glCanvas, 0, glCanvas.height - h, w, h, 0, 0, w, h)

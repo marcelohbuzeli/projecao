@@ -1,12 +1,13 @@
-import { RefreshCw, MonitorUp, Download, Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { RefreshCw, MonitorUp, Download, Upload, Copy, QrCode, ExternalLink } from 'lucide-react'
+import qrcode from 'qrcode-generator'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, setState, setLive, getState } from '../core/store'
-import { Btn, Toggle } from '../ui/common'
+import { Btn, Toggle, Modal } from '../ui/common'
 import { peerStatus, stopLivePeer, startLivePeer } from '../core/sync'
-import { exportBackup, importBackup } from '../core/files'
+import { exportBackup, importBackup, downloadBlob } from '../core/files'
 import { toast } from '../ui/uiStore'
 import { getCameraStream } from '../render/Layers'
-import { toggleFullscreen } from '../ui/fullscreen'
+import { toggleFullscreen, rearmAutoFullscreen } from '../ui/fullscreen'
 import { randomCode, setupSql, uploadLink, listEnvios, checkUploadCode, schemaVersion, SCHEMA_VERSION, type EnviosConfig } from '../core/envios'
 import { refreshEnvios } from './live/EnviosPanel'
 
@@ -46,7 +47,7 @@ export async function openOutput(id: OutKey | 'live') {
   const screens = await detectScreens()
   const scr = screens?.find((s) => s.key === map[id])
   const feat = scr
-    ? `popup,left=${scr.left},top=${scr.top},width=${scr.width},height=${scr.height}`
+    ? `popup,fullscreen,left=${scr.left},top=${scr.top},width=${scr.width},height=${scr.height}`
     : `popup,width=960,height=540,left=${80 + Object.keys(opened).length * 40},top=${80 + Object.keys(opened).length * 40}`
   const w = window.open(url, 'projecao-' + id, feat)
   if (!w) {
@@ -66,6 +67,8 @@ export async function openOutput(id: OutKey | 'live') {
 
 export async function openAllOutputs() {
   for (const id of ['telao', 'laterais', 'retorno'] as OutKey[]) await openOutput(id)
+  // abrir janelas tira o painel da tela cheia: volta no próximo clique
+  rearmAutoFullscreen()
 }
 
 function OperatorScreenSection() {
@@ -291,6 +294,7 @@ function LiveSection() {
 function EnviosSection() {
   const saved = useStore((s) => s.settings.envios)
   const [status, setStatus] = useState<'' | 'ok' | 'testing' | string>('')
+  const [qr, setQr] = useState(false)
   useEffect(() => {
     if (!getState().settings.envios)
       setState((s) => ({ ...s, settings: { ...s.settings, envios: { url: '', key: '', up: randomCode(), admin: randomCode() } } }))
@@ -317,14 +321,8 @@ function EnviosSection() {
       setStatus(e?.message || String(e))
     }
   }
-  return (
-    <section className="card">
-      <h4>Envios dos pastores</h4>
-      <p className="hint">
-        Um link onde os pastores mandam slides, vídeos e avisos, dizendo para qual culto e o que é. Chega na aba <b>Envios</b> do painel (à esquerda), separado por data.
-        Os arquivos ficam num servidor gratuito (Supabase, até 1 GB · 50 MB por arquivo). Envios com prazo são apagados sozinhos depois da data
-        (do servidor e deste computador) — quem envia escolhe “até o culto”, uma data ou “permanente”, e você pode mudar na aba Envios.
-      </p>
+  const steps = (
+    <>
       <ol className="steps env-steps">
         <li>
           <b>Crie uma conta grátis</b>
@@ -349,22 +347,68 @@ function EnviosSection() {
             {status && status !== 'ok' && status !== 'testing' && <span className="hint" style={{ color: 'var(--live)' }}>{status}</span>}
           </div>
         </li>
-        <li>
-          <b>Mande o link para os pastores</b>
-          <p>Funciona no celular. Quem tem o link só consegue enviar — a lista fica só aqui.</p>
-          <div className="row">
-            <input readOnly value={link || 'complete o passo 3'} style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 11 }} onFocus={(e) => e.target.select()} />
-            <Btn small kind="primary" disabled={!ready} onClick={() => copy(link, 'Link copiado')}>Copiar</Btn>
-            <Btn small disabled={!ready} onClick={() => window.open(link, '_blank')}>Abrir</Btn>
-          </div>
-        </li>
       </ol>
-      <details>
-        <summary>Trocar códigos (se o link vazar)</summary>
-        <p className="hint">Gera códigos novos. Depois rode o script de novo (passo 2) e mande o link novo — o antigo para de funcionar.</p>
-        <Btn small kind="danger" onClick={() => { if (confirm('Gerar códigos novos?')) { set({ up: randomCode(), admin: randomCode() }); setStatus('') } }}>Gerar novos códigos</Btn>
-      </details>
+      <p className="hint" style={{ marginTop: 12 }}>
+        <b>Trocar códigos (se o link vazar):</b> gera códigos novos; depois rode o script de novo e mande o link novo — o antigo para de funcionar.
+      </p>
+      <Btn small kind="danger" onClick={() => { if (confirm('Gerar códigos novos? O link atual para de funcionar até você rodar o script de novo no Supabase.')) { set({ up: randomCode(), admin: randomCode() }); setStatus('') } }}>Gerar novos códigos</Btn>
+    </>
+  )
+  return (
+    <section className="card">
+      <h4>Link de envio para os pastores</h4>
+      {ready ? (
+        <>
+          <p className="hint">Mande este link (ou mostre o QR code) para quem vai enviar slides, vídeos e avisos. Quem tem o link só consegue enviar — a lista fica só aqui, na aba <b>Envios</b>.</p>
+          <div className="row">
+            <input readOnly value={link} style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 11 }} onFocus={(e) => e.target.select()} />
+            <Btn kind="primary" icon={Copy} onClick={() => copy(link, 'Link copiado')}>Copiar</Btn>
+            <Btn icon={QrCode} onClick={() => setQr(true)}>QR code</Btn>
+            <Btn icon={ExternalLink} onClick={() => window.open(link, '_blank')} title="Abrir a página de envio">Abrir</Btn>
+          </div>
+          <details style={{ marginTop: 12 }}>
+            <summary>Configuração do servidor (Supabase)</summary>
+            {steps}
+          </details>
+        </>
+      ) : (
+        <>
+          <p className="hint">Configure o servidor gratuito uma vez para gerar o link.</p>
+          {steps}
+        </>
+      )}
+      {qr && <QrModal link={link} onClose={() => setQr(false)} />}
     </section>
+  )
+}
+
+function QrModal({ link, onClose }: { link: string; onClose: () => void }) {
+  const svg = useMemo(() => {
+    const q = qrcode(0, 'M')
+    q.addData(link)
+    q.make()
+    return q.createSvgTag({ cellSize: 8, margin: 3, scalable: true })
+  }, [link])
+  const download = () => {
+    const img = new Image()
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = c.height = 1200
+      const g = c.getContext('2d')!
+      g.fillStyle = '#fff'
+      g.fillRect(0, 0, 1200, 1200)
+      g.drawImage(img, 0, 0, 1200, 1200)
+      c.toBlob((b) => b && downloadBlob(b, 'qr-envio-projecao.png'))
+    }
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+  }
+  return (
+    <Modal title="QR code — envio para a projeção" onClose={onClose} footer={<><Btn icon={Download} onClick={download}>Baixar imagem</Btn><Btn kind="primary" onClick={onClose}>Fechar</Btn></>}>
+      <div className="qr-box">
+        <div className="qr-img" dangerouslySetInnerHTML={{ __html: svg }} />
+        <p>Aponte a câmera do celular para abrir a página de envio.</p>
+      </div>
+    </Modal>
   )
 }
 

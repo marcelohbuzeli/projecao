@@ -17,7 +17,20 @@ export const SHADER_LABELS: Record<ShaderName, string> = {
   caleidoscopio: 'Caleidoscópio',
   tunel: 'Túnel de luz',
   estrelas: 'Viagem estelar',
+  halo: 'Halo',
+  cruz: 'Cruz de luz',
+  seda: 'Seda',
+  brasas: 'Brasas',
+  horizonte: 'Horizonte',
 }
+
+/** Categorias do Estúdio de fundos */
+export const SHADER_GROUPS: { id: string; label: string; items: ShaderName[] }[] = [
+  { id: 'luz', label: 'Luz', items: ['halo', 'cruz', 'raios', 'bokeh', 'horizonte'] },
+  { id: 'fluxo', label: 'Fluxo', items: ['seda', 'gradiente', 'aurora', 'ondas', 'plasma'] },
+  { id: 'formas', label: 'Formas', items: ['aneis', 'plexus', 'grade', 'caleidoscopio', 'espiral', 'brasas', 'particulas', 'fogos'] },
+  { id: 'cena', label: 'Espaço', items: ['nebulosa', 'estrelas', 'tunel'] },
+]
 
 const HEAD = `
 precision highp float;
@@ -28,6 +41,8 @@ uniform vec3 cB;
 uniform vec3 cC;
 uniform float uInt;
 uniform float uScale;
+uniform float uWarp;
+vec4 _fc; vec4 _FC;
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
 float noise(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);
   float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
@@ -315,8 +330,109 @@ void main(){
   }
   gl_FragColor = vec4(col, 1.0);
 }`,
+  halo: `
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes; vec2 p = uv - 0.5; p.x *= uRes.x/uRes.y;
+  float t = uTime*0.25; float r = length(p);
+  float rings = 0.5 + 0.5*cos((r*14.0/uScale) - t*3.0);
+  rings = pow(rings, 6.0) * smoothstep(0.9, 0.05, r);
+  float core = 0.035/(r*r*6.0 + 0.035);
+  float breathe = 0.85 + 0.15*sin(t*2.0);
+  vec3 col = cA + cB*rings*0.55*uInt + mix(cB, cC, smoothstep(0.25, 0.0, r))*core*breathe*uInt;
+  col += cB*0.06*fbm(p*3.0 + t);
+  gl_FragColor = vec4(col, 1.0);
+}`,
+  cruz: `
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes; vec2 p = uv - vec2(0.5, 0.5); p.x *= uRes.x/uRes.y; p /= uScale;
+  float t = uTime*0.3;
+  vec2 q = p - vec2(0.0, 0.04);
+  float v = max(abs(q.x) - 0.018, max(q.y - 0.26, -q.y - 0.30));
+  float h = max(abs(q.y - 0.11) - 0.018, abs(q.x) - 0.13);
+  float d = min(v, h);
+  float shape = smoothstep(0.004, 0.0, d);
+  float glow = 0.012/(max(d, 0.0) + 0.012);
+  float pulse = 0.8 + 0.2*sin(t*2.0);
+  float ang = atan(q.y, q.x);
+  float rays = pow(0.5 + 0.5*sin(ang*12.0 + t), 8.0) * smoothstep(0.8, 0.0, length(q)) * 0.25;
+  vec3 col = cA + cB*(glow*0.7*pulse + rays)*uInt + mix(cC, vec3(1.0), 0.4)*shape*uInt;
+  col += cB*0.05*fbm(p*4.0 - t);
+  gl_FragColor = vec4(col, 1.0);
+}`,
+  seda: `
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes; vec2 p = uv; p.x *= uRes.x/uRes.y; p *= 1.6/uScale;
+  float t = uTime*0.08;
+  vec2 q = vec2(fbm(p + t), fbm(p + vec2(5.2, 1.3) - t));
+  vec2 r = vec2(fbm(p + 3.0*q + vec2(1.7, 9.2) + t*1.5), fbm(p + 3.0*q + vec2(8.3, 2.8) - t));
+  float f = fbm(p + 3.0*r);
+  vec3 col = mix(cA, cB, clamp(f*f*2.2, 0.0, 1.0));
+  col = mix(col, cC, clamp(length(q)*0.9 - 0.25, 0.0, 1.0) * uInt);
+  float sheen = pow(clamp(1.0 - abs(f - 0.55)*5.0, 0.0, 1.0), 3.0);
+  col += cC*sheen*0.35*uInt;
+  gl_FragColor = vec4(col, 1.0);
+}`,
+  brasas: `
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes; vec2 p = uv; p.x *= uRes.x/uRes.y;
+  float t = uTime*0.12;
+  vec3 col = cA + cB*0.25*pow(1.0 - uv.y, 2.5)*uInt;
+  for(int l=0;l<3;l++){
+    float fl = float(l);
+    float sc = (9.0 + fl*7.0)/uScale;
+    vec2 q = p*sc; q.y -= t*(3.0 + fl*1.5)*sc*0.12; q.x += sin(q.y*0.4 + t*3.0 + fl)*0.4;
+    vec2 id = floor(q); vec2 gv = fract(q) - 0.5;
+    float h = hash(id + fl*3.1);
+    vec2 o = vec2(hash(id + 2.3), hash(id + 5.7)) - 0.5;
+    float d = length(gv - o*0.6);
+    float e = 0.004/(d*d + 0.004) * step(0.72, h) * (0.6 + 0.4*sin(t*20.0 + h*40.0));
+    col += mix(cB, cC, h) * e * (0.5 - fl*0.12) * uInt;
+  }
+  gl_FragColor = vec4(col, 1.0);
+}`,
+  horizonte: `
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes; vec2 p = uv - vec2(0.5, 0.32); p.x *= uRes.x/uRes.y;
+  float t = uTime*0.1;
+  float sky = smoothstep(-0.1, 0.9, uv.y);
+  vec3 col = mix(mix(cC, cB, 0.6), cA, sky);
+  float sun = 0.02/(dot(p, p)*3.0 + 0.02);
+  col += mix(cC, vec3(1.0), 0.3) * sun * 0.6 * uInt;
+  float ang = atan(p.y, p.x);
+  col += cC * pow(0.5 + 0.5*sin(ang*16.0 + t*2.0), 10.0) * smoothstep(0.9, 0.0, length(p)) * step(0.0, p.y) * 0.25 * uInt;
+  float clouds = fbm(vec2(uv.x*3.0/uScale + t, uv.y*8.0));
+  col = mix(col, col*0.6 + cB*0.2, smoothstep(0.55, 0.8, clouds) * smoothstep(0.15, 0.6, uv.y) * 0.6);
+  float ground = smoothstep(0.30, 0.27, uv.y + 0.01*fbm(vec2(uv.x*10.0, 0.0)));
+  col = mix(col, cA*0.6, ground);
+  gl_FragColor = vec4(col, 1.0);
+}`,
 }
 
-export const fragmentSource = (name: ShaderName) => HEAD + (BODIES[name] ?? BODIES.gradiente)
+const POST = `
+uniform float uGrain; uniform float uGlow; uniform float uContrast; uniform float uVig; uniform float uDark;
+uniform vec3 uTint; uniform float uTintAmt;
+void main(){
+  vec2 fp = gl_FragCoord.xy;
+  if (uWarp > 0.0) {
+    vec2 s = fp/uRes.y*2.5;
+    fp += uWarp*uRes.y*0.09*vec2(fbm(s + uTime*0.05) - 0.5, fbm(s + vec2(7.1, 3.3) - uTime*0.05) - 0.5);
+  }
+  _FC = vec4(fp, gl_FragCoord.zw);
+  sceneMain();
+  vec3 c = _fc.rgb;
+  c += c*c*uGlow*1.2;
+  c = mix(c, vec3(dot(c, vec3(0.299, 0.587, 0.114)))*uTint*1.6, uTintAmt);
+  c = (c - 0.5)*uContrast + 0.5;
+  vec2 uv = gl_FragCoord.xy/uRes;
+  c *= mix(1.0, smoothstep(1.05, 0.25, length((uv - 0.5)*vec2(1.25, 1.0))), uVig);
+  c *= 1.0 - uDark*0.85;
+  c += (hash(gl_FragCoord.xy + fract(uTime*7.13)*91.7) - 0.5)*uGrain*0.16;
+  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+}`
+
+export const fragmentSource = (name: ShaderName) =>
+  HEAD +
+  (BODIES[name] ?? BODIES.gradiente).replace('void main()', 'void sceneMain()').replace(/gl_FragColor/g, '_fc').replace(/gl_FragCoord/g, '_FC') +
+  POST
 
 export const VERTEX = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.0,1.0); }`

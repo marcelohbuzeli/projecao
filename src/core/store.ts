@@ -23,6 +23,8 @@ export interface AppState {
   bibles: BibleMeta[]
   stage: StageConfig
   live: LiveState
+  /** Layout fixo da Bíblia: quando um versículo vai ao ar, só o fundo pode mudar */
+  bibleLayout: { enabled: boolean; themeId: string | null }
   settings: { roomId: string; bibleId: string; timerPresets: number[]; liveEnabled: boolean; screenMap: Record<string, string>; builtinVersion?: number; envios?: import('./envios').EnviosConfig; envioMedia?: Record<string, string>; autoFullscreen?: boolean }
 }
 
@@ -37,6 +39,7 @@ const initial = (): AppState => ({
   bibles: [],
   stage: defaultStage(),
   live: defaultLive(),
+  bibleLayout: { enabled: true, themeId: null },
   settings: { roomId: Math.random().toString(36).slice(2, 8), bibleId: '', timerPresets: [5, 10, 15, 30, 45, 60], liveEnabled: true, screenMap: {}, builtinVersion: BUILTIN_VERSION },
 })
 
@@ -97,6 +100,7 @@ export async function loadState() {
       ...saved,
       settings: { ...base.settings, ...saved.settings, builtinVersion: saved.settings?.builtinVersion ?? 1 },
       stage: { ...base.stage, ...saved.stage },
+      bibleLayout: { ...base.bibleLayout, ...saved.bibleLayout },
       live: {
         ...base.live,
         ...saved.live,
@@ -138,12 +142,29 @@ function resolveLook(s: AppState, look: OutputLook): ResolvedLook {
   }
 }
 
+/** Layout da Bíblia: letra no estilo da Bíblia nas duas telas, sem câmera nem sobreposição; só o fundo é escolhido. */
+export function bibleLook(s: AppState, base: OutputLook): ResolvedLook {
+  const themeId = s.bibleLayout.themeId ?? s.live.themeId
+  return {
+    theme: s.themes.find((t) => t.id === themeId) ?? null,
+    overlay: null,
+    overlayOpacity: 0,
+    lyrics: true,
+    style: findStyle(s, 'st-biblia'),
+    camera: { ...base.camera, enabled: false },
+    media: base.media,
+  }
+}
+
+export const bibleActive = (s: AppState) => s.bibleLayout.enabled && s.live.text?.kind === 'bible'
+
 export function buildSnapshot(s: AppState = state): Snapshot {
   const l = s.live
+  const bib = bibleActive(s)
   return {
     v: Date.now(),
-    telao: resolveLook(s, l.looks.telao),
-    laterais: resolveLook(s, l.looks.laterais),
+    telao: bib ? bibleLook(s, l.looks.telao) : resolveLook(s, l.looks.telao),
+    laterais: bib ? bibleLook(s, l.looks.laterais) : resolveLook(s, l.looks.laterais),
     liveStyle: findStyle(s, l.liveStyleId),
     text: l.text,
     textVisible: l.textVisible,

@@ -34,11 +34,14 @@ export function OutputPage({ id, room }: { id: OutputId; room?: string }) {
     }
     window.addEventListener('mousemove', move)
     move()
+    const key = () => { if (id !== 'live' && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}) }
+    window.addEventListener('keydown', key)
     return () => {
       stop?.()
       clearTimeout(t)
       document.removeEventListener('fullscreenchange', fs)
       window.removeEventListener('mousemove', move)
+      window.removeEventListener('keydown', key)
     }
   }, [id, room])
 

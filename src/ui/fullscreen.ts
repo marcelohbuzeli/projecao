@@ -39,6 +39,10 @@ export function useIsFullscreen() {
  * Então, se a opção estiver ligada, entra no primeiro clique ou tecla depois de abrir o painel.
  * Se o operador sair de propósito, não força de novo até recarregar.
  */
+let rearm: (() => void) | null = null
+/** Volta a entrar em tela cheia no próximo clique (ex.: depois de abrir as janelas das saídas). */
+export const rearmAutoFullscreen = () => rearm?.()
+
 export function useAutoFullscreen() {
   useEffect(() => {
     let done = false
@@ -53,8 +57,22 @@ export function useAutoFullscreen() {
       window.removeEventListener('pointerdown', go, true)
       window.removeEventListener('keydown', go, true)
     }
-    window.addEventListener('pointerdown', go, true)
-    window.addEventListener('keydown', go, true)
-    return off
+    const on = () => {
+      window.addEventListener('pointerdown', go, true)
+      window.addEventListener('keydown', go, true)
+    }
+    on()
+    rearm = () => {
+      if (!(getState().settings.autoFullscreen ?? true)) return
+      off()
+      setTimeout(() => {
+        done = false
+        on()
+      }, 800)
+    }
+    return () => {
+      off()
+      rearm = null
+    }
   }, [])
 }

@@ -1,4 +1,4 @@
-import { Play, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd } from 'lucide-react'
+import { Play, LayoutGrid, Wand2, BookOpen, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useStore, useSnapshot, setState, getState, actions, findStyle } from '../core/store'
 import type { Scene, SceneOutputId, TextStyle, CameraLayout, ResolvedLook, Snapshot } from '../core/types'
@@ -7,11 +7,33 @@ import { Btn, Tabs, Toggle, Slider, Select, ColorField, VisualThumb, BLEND_OPTIO
 import { Composite, LiveComposite } from '../render/Layers'
 import { CAMERA_PRESETS, defaultLook, uid, baseStyle } from '../core/defaults'
 import { toast } from '../ui/uiStore'
+import { BgStudio } from './BgStudio'
+import { BibleLayoutPage } from './BibleLayoutPage'
 
 type EditOut = SceneOutputId | 'live'
 const COLORS = ['#7c3aed', '#ea580c', '#0891b2', '#16a34a', '#dc2626', '#db2777', '#ca8a04', '#475569']
 
+type Mode = 'cenas' | 'estudio' | 'biblia'
+
 export function ProgramPage() {
+  const [mode, setMode] = useState<Mode>('cenas')
+  return (
+    <div className="program-wrap">
+      <nav className="pg-modes">
+        <button className={mode === 'cenas' ? 'on' : ''} onClick={() => setMode('cenas')}><LayoutGrid size={14} /> Cenas</button>
+        <button className={mode === 'estudio' ? 'on' : ''} onClick={() => setMode('estudio')}><Wand2 size={14} /> Estúdio de fundos</button>
+        <button className={mode === 'biblia' ? 'on' : ''} onClick={() => setMode('biblia')}><BookOpen size={14} /> Layout da Bíblia</button>
+      </nav>
+      <div className="pg-mode-body">
+        {mode === 'cenas' && <ScenesEditor />}
+        {mode === 'estudio' && <BgStudio />}
+        {mode === 'biblia' && <BibleLayoutPage onStudio={() => setMode('estudio')} />}
+      </div>
+    </div>
+  )
+}
+
+function ScenesEditor() {
   const scenes = useStore((s) => s.scenes)
   const liveSceneId = useStore((s) => s.live.sceneId)
   const [editId, setEditId] = useState<string>(scenes[0]?.id ?? '')

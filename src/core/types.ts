@@ -15,6 +15,7 @@ export interface MediaItem {
 export type ShaderName =
   | 'aurora' | 'ondas' | 'particulas' | 'raios' | 'bokeh' | 'nebulosa' | 'gradiente' | 'grade'
   | 'plexus' | 'fogos' | 'plasma' | 'espiral' | 'aneis' | 'caleidoscopio' | 'tunel' | 'estrelas'
+  | 'halo' | 'cruz' | 'seda' | 'brasas' | 'horizonte'
 
 export interface ShaderParams {
   colorA: string
@@ -23,6 +24,15 @@ export interface ShaderParams {
   speed: number // 0..2
   intensity: number // 0..2
   scale: number // 0.3..3
+  // acabamento (opcional — Estúdio de fundos). Ausente = neutro.
+  warp?: number // 0..1 distorção
+  grain?: number // 0..1 granulação
+  glow?: number // 0..1 brilho
+  contrast?: number // 0.5..2
+  vignette?: number // 0..1 escurecer bordas
+  dark?: number // 0..1 escurecer tudo
+  tint?: string
+  tintAmt?: number // 0..1
 }
 
 export type Visual =
